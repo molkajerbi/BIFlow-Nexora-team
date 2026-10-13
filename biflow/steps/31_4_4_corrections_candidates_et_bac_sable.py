@@ -3,13 +3,17 @@ _, current = run_rules(SILVER, RULES)
 assert not any("_dq_flags" in df for df in SILVER.values()) and current["violations"].tolist() == RULES_BEFORE["violations"].tolist(), \
     "SILVER a déjà été modifié par une exécution précédente : relancez l'étape 4 depuis la cellule 4.1."
 
-# Catalogue FERMÉ de corrections génériques, toutes sans perte d'information
+# Catalogue FERMÉ de corrections génériques : la valeur d'origine est toujours conservée dans le journal
 CORRECTIONS = {
     "strip_whitespace":     ("FMT_", "retire les espaces en début et fin de valeur"),
     "normalize_missing":    ("NUL_", "remplace une valeur vide déguisée (NA, null, -…) par une vraie valeur manquante"),
     "harmonize_variants":   ("CAS_", "unifie les variantes d'écriture d'une même catégorie (casse, accents, espaces) ; "
                                      "les lignes devenues identiques sont ensuite supprimées par le dédoublonnage"),
     "drop_exact_duplicates": ("DUP_", "supprime les lignes copiées à l'identique"),
+    "replace_impossible":   ("BUS_non_negative_", "remplace une valeur négative impossible par la médiane des lignes semblables"),
+    "cap_outliers":         ("OUT_", "ramène une valeur extrême à la limite haute ou basse de sa colonne (valeur d'origine journalisée)"),
+    "impute_missing":       ("MIS_", "remplit une valeur manquante : médiane des lignes semblables (mesure), catégorie "
+                                     "déduite des autres colonnes, ou « Non renseigné » (valeur estimée marquée)"),
 }
 
 
@@ -20,6 +24,10 @@ def transform(correction: str, df: pd.DataFrame, table: str, column: str) -> tup
     if correction == "drop_exact_duplicates":
         removed = df.duplicated(subset=list(DATA_CONTRACT[table]["columns"]), keep="first")
         return df.loc[~removed], none, removed
+    if correction in ESTIMATING:                        # valeurs manquantes, impossibles, extrêmes (4.1 bis)
+        new, changed = treat_values(correction, df, table, column)
+        df[column] = new
+        return df, changed, none
     old = df[column]
     if correction == "strip_whitespace":
         new = old.str.strip().replace("", pd.NA)
@@ -52,13 +60,13 @@ def build_candidates() -> list[dict]:
     """Corrections possibles, déduites des règles en violation (le code ne propose que ce que le catalogue sait faire)."""
     cands = []
     for r in RULES_BEFORE.query("violations > 0").itertuples():
-        prefix = r.rule[:4]
-        correction = next((k for k, (p, _) in CORRECTIONS.items() if p == prefix), None)
-        if prefix == "UNQ_" and exact_duplicates_explain(r.table):
+        correction = next((k for k, (p, _) in CORRECTIONS.items() if r.rule.startswith(p)), None)
+        if r.rule.startswith("UNQ_") and exact_duplicates_explain(r.table):
             correction = "drop_exact_duplicates"          # grain cassé uniquement par des copies exactes
         if correction is None:
             continue
-        table, column = (r.table, "*") if correction == "drop_exact_duplicates" else r.rule[4:].split(".", 1)
+        table, column = (r.table, "*") if correction == "drop_exact_duplicates" \
+            else r.rule[len(CORRECTIONS[correction][0]):].split(".", 1)
         adv = profiler_advice(table, column)
         cands.append({"id": f"K{len(cands) + 1}", "correction": correction, "table": table, "column": column,
                       "rule": r.rule, "violations": r.violations, "profiler_findings": adv[0],
@@ -67,9 +75,10 @@ def build_candidates() -> list[dict]:
 
 
 def rules_touching(table: str) -> list[Rule]:
-    """Règles dont le résultat peut changer si cette table change (règles de la table + intégrité vers elle)."""
+    """Règles dont le résultat peut changer si cette table change : règles de la table, intégrité vers elle,
+    et totaux entre tables (modifier un montant peut casser « montant de la vente = somme des paiements »)."""
     parents = {f"REF_{r['child']}.{r['fk']}" for r in RELATIONSHIPS if r["parent"] == table}
-    return [r for r in RULES if r.table == table or r.id in parents]
+    return [r for r in RULES if r.table == table or r.id in parents or r.id.startswith("BUS_total_")]
 
 
 def simulate_correction(c: dict) -> dict:
@@ -90,9 +99,16 @@ def simulate_correction(c: dict) -> dict:
     # Unifier des valeurs peut rendre des lignes identiques : ces copies exactes seront supprimées (sans perte)
     # par le dédoublonnage, appliqué APRÈS les corrections de valeurs. Ce n'est donc pas un effet négatif.
     revealed = delta["rule"].eq(f"DUP_{t}") & (delta["violations_après"] > delta["violations_avant"])
+    if c["correction"] == "impute_missing":            # une catégorie estimée peut RÉVÉLER une valeur extrême,
+        revealed |= delta["rule"].str.startswith(f"OUT_{t}.") & (delta["violations_après"] > delta["violations_avant"])
+        # elle sera plafonnée ensuite (les extrêmes sont traités après les manques)
+    elif c["correction"] in {"strip_whitespace", "normalize_missing"}:   # un texte fait d'espaces devient un vrai vide :
+        revealed |= delta["rule"].eq(f"MIS_{t}.{col}") & (delta["violations_après"] > delta["violations_avant"])
+        # ce n'est pas un problème créé : il sera rempli ensuite (les manques sont traités après les formats)
     dup_revealed = int((delta.loc[revealed, "violations_après"] - delta.loc[revealed, "violations_avant"]).sum())
     worse = delta[~revealed]
     return {"cells_changed": int(changed.sum()), "rows_removed": int(removed.sum()), "rows_added": 0,
+            "estimated_values": c["correction"] in ESTIMATING,
             "duplicates_revealed": dup_revealed,
             "rows_removed_pct": round(100 * float(removed.mean()), 2) if len(removed) else 0.0,
             "impact": CORRECTIONS[c["correction"]][1], "information_loss": False, "examples": examples,

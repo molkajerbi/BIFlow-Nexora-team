@@ -67,12 +67,9 @@ def understand_domain(retries: int = 1) -> tuple[str | None, dict, list, list]:
     return None, {}, [], []
 
 
-if OVERRIDES.get("domain"):                         # le domaine donné par un humain est prioritaire
-    domain_source, descriptions, accepted, rejected = "humain", {}, [], []
-else:
-    found, descriptions, accepted, rejected = understand_domain()
-    domain_source = "LLM" if found else "par défaut"
-    DOMAIN = found or DOMAIN
+found, descriptions, accepted, rejected = understand_domain(retries=2)
+domain_source = "LLM" if found else "par défaut"
+DOMAIN = found or DOMAIN
 for c in accepted:                                  # corrections validées : appliquées et tracées
     if c["action"] == "drop_relationship":
         RELATIONSHIPS = [r for r in RELATIONSHIPS if f"{r['child']}.{r['fk']}" != c["target"]]

@@ -11,8 +11,7 @@ STEPS_DIR = Path(__file__).resolve().parent / "steps"
 
 # Cellules propres au notebook, remplacées ou ignorées en déploiement (repérées par leur contenu, pas leur position)
 REPLACED = {"class LocalLLM": "llm"}                                   # LLM GPU -> LLM Ollama (voir engine.py)
-SKIPPED = {"tampered = copy.deepcopy(AUDIT)": "démo de falsification (1.3)",
-           'run_data_preparation(None, autonomy="manual")': "démo du mode manuel (6.6)"}
+SKIPPED = {"tampered = copy.deepcopy(AUDIT)": "démo de falsification (1.3)"}
 
 # Adaptations Windows / Linux / macOS (le code du notebook supposait Linux, comme sur Kaggle)
 PATCHES = [

@@ -80,7 +80,7 @@ def page_new() -> None:
         md(ui.banner("Aucun modèle d'IA installé", "Dans un terminal : ollama pull qwen2.5:7b", "warn"))
     if st.button("Lancer l'analyse", type="primary", disabled=not files or not models, **WIDE):
         try:
-            job_id = jobs.create_job([(f.name, f.getvalue()) for f in files], name, "risk_based", model)
+            job_id = jobs.create_job([(f.name, f.getvalue()) for f in files], name, model)
         except ValueError as exc:
             md(ui.banner("Ces fichiers ne peuvent pas être analysés", str(exc), "crit"))
             return
@@ -230,9 +230,7 @@ def pending(what: str) -> None:
 
 
 def relaunch(job_id: str, meta: dict) -> None:
-    """Relance une analyse, toujours en mode automatique (aussi pour les anciennes analyses)."""
-    meta = {**meta, "autonomy": "risk_based", "human_decision": None}
-    (jobs.JOBS_DIR / job_id / "job.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
+    """Relance une analyse (100 % automatique) en repartant des mêmes fichiers."""
     for old in ("result.json", "decision.json"):
         (jobs.JOBS_DIR / job_id / old).unlink(missing_ok=True)
     jobs.launch(job_id)
@@ -276,16 +274,18 @@ def tab_overview(job_id: str, meta: dict, res: dict, completed: int, status: str
         md(ui.section("Ce que chaque agent a fait", "Ouvrez l'onglet correspondant pour voir le détail."))
         md(ui.agent_cards(agent_summary(job_id, res, completed, status, star)))
 
-    escalated = (res.get("review") or {}).get("escalated") or {}
-    if escalated:
-        n = len(escalated)
+    review = res.get("review") or {}
+    set_aside = review.get("set_aside") or review.get("escalated") or {}
+    if set_aside:
+        n = len(set_aside)
         text = ("Une correction n'a pas été appliquée car elle présentait un risque pour vos données."
                 if n == 1 else f"{n} corrections n'ont pas été appliquées car elles présentaient un risque pour vos données.")
         md(ui.banner("Corrections mises de côté par prudence",
                      text + " Les problèmes concernés restent signalés dans l'onglet 3 Nettoyage.", "warn"))
 
     if status == "success":
-        md(ui.section("Télécharger", "Les tables du modèle en étoile, la base analytique et les rapports de chaque agent."))
+        md(ui.section("Télécharger", "Le modèle en étoile (base de données et tables), les données nettoyées et les rapports "
+                      "de chaque agent."))
         c = st.columns(2)
         zip_path = jobs.JOBS_DIR / job_id / "biflow_outputs.zip"
         if zip_path.exists():
@@ -322,7 +322,7 @@ def agent_summary(job_id: str, res: dict, completed: int, status: str, star: dic
         sc = scores.rename(columns={scores.columns[0]: "dimension"})
         items.append((3, "Nettoyage", f"Qualité {sc['avant'].mean():.1f} → {sc['après'].mean():.1f} / 100",
                       f"{ui.plural(q.get('corrections_applied'), 'correction appliquée', 'corrections appliquées')}, "
-                      "rien d'inventé", "done"))
+                      "chacune tracée", "done"))
     else:
         items.append((3, "Nettoyage", "en cours…" if status == "running" and completed >= 3 else "—", waiting, "todo"))
     if completed >= 5 and star:
@@ -438,8 +438,9 @@ def tab_cleaning(job_id: str, res: dict) -> None:
     rules = jobs.table(job_id, "rules_after")
     q = res.get("quality") or {}
     md(ui.section("Le nettoyage de vos données",
-                  "Chaque correction a d'abord été testée sur une copie. Seules les corrections sans perte "
-                  "d'information sont appliquées ; les autres restent signalées."))
+                  "L'agent corrige les formats, retire les doublons, estime les valeurs manquantes, remplace les valeurs "
+                  "impossibles et ramène les valeurs extrêmes à une limite. Chaque correction est d'abord testée sur une "
+                  "copie, et la valeur d'origine reste toujours dans le journal."))
     qs = res.get("quality_status") or q.get("quality_status")
     if qs in ui.QUALITY_STATUS:
         text, kind = ui.QUALITY_STATUS[qs]
@@ -449,7 +450,7 @@ def tab_cleaning(job_id: str, res: dict) -> None:
         scores = scores.rename(columns={scores.columns[0]: "dimension"})
         before, after = scores["avant"].mean(), scores["après"].mean()
         md(ui.kpis([("Score de qualité", f"{after:.1f} / 100", f"contre {before:.1f} avant nettoyage", "accent"),
-                    ("Cellules corrigées", ui.fmt_int(q.get("cells_changed", 0)), "valeurs remises en forme"),
+                    ("Cellules corrigées", ui.fmt_int(q.get("cells_changed", 0)), "corrigées ou estimées"),
                     ("Lignes en double retirées", ui.fmt_int(q.get("rows_changed", 0)), "copies exactes"),
                     ("Points à surveiller", ui.fmt_int(len(remaining)), "signalés, jamais supprimés")]))
         md(ui.section("Qualité par aspect, avant et après",
@@ -476,8 +477,10 @@ def tab_cleaning(job_id: str, res: dict) -> None:
             if changes is not None and len(changes) and p.correction != "drop_exact_duplicates":
                 ex = changes[changes["correction"] == p.id].head(1)
                 for e in ex.itertuples():
-                    swap = (f'<div class="bf-swap"><code>{ui.esc(repr(e.before) if isinstance(e.before, str) else "vide")}</code>'
-                            f'devient<code class="after">{ui.esc(e.after if isinstance(e.after, str) else "vide")}</code></div>')
+                    old, new = ui.show_value(e.before, quoted=True), ui.show_value(e.after)
+                    if old.strip("'") != new:                     # un exemple qui montre vraiment le changement
+                        swap = (f'<div class="bf-swap"><code>{ui.esc(old)}</code>'
+                                f'devient<code class="after">{ui.esc(new)}</code></div>')
             items.append(f'<div class="bf-card"><div class="row"><h4>{ui.esc(title)}</h4>{ui.badge(effect, kind)}</div>'
                          f'<p>{ui.esc(explain)}</p>{swap}<div class="meta">{ui.esc(where)} · '
                          f'{ui.esc(ui.DECIDED_BY.get(p.décidé_par, p.décidé_par))}'

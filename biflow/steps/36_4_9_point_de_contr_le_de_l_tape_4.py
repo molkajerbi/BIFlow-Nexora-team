@@ -1,5 +1,5 @@
 def lineage_ok_for(t: str) -> bool:
-    """Chaque ligne silver vient d'une ligne brute, ou d'un ajout validé par l'humain."""
+    """Chaque ligne silver vient d'une ligne brute (aucune ligne n'est jamais inventée)."""
     ids = SILVER[t]["_source_row_id"]
     return bool((ids.str.startswith("ajout:") | ids.isin(RAW._tables[t]["_source_row_id"])).all())
 

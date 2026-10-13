@@ -4,8 +4,11 @@
 - la progression (pourcentage, étape en cours) est écrite dans <job>/progress.json ;
 - les résultats de chaque agent sont publiés dans <job>/results/ dès que l'agent a terminé ;
 - le résultat final est écrit dans <job>/result.json ;
-- si une étape 4 ou 5 s'arrête (mode manuel sans décision, qualité bloquante), le moteur ne plante pas :
-  il charge seulement les définitions restantes, et c'est l'orchestrateur (étape 6) qui donne le statut final.
+- tout est automatique : aucune validation humaine n'est attendue ;
+- les étapes 1 à 5 sont exécutées une seule fois ; l'étape 6 du notebook (orchestrateur LangGraph, qui rejoue
+  toute la chaîne pour le futur BI Orchestrator) n'est pas relancée : le moteur livre directement le modèle en
+  étoile et les données nettoyées produits par l'étape 5 (voir _deliver) ;
+- si une étape 4 ou 5 s'arrête (qualité bloquante), le moteur ne plante pas : il livre le statut « bloqué » ou « échec ».
 """
 from __future__ import annotations
 
@@ -26,8 +29,8 @@ from .llm import LLMUnavailable, OllamaLLM
 
 STEPS_DIR = Path(__file__).resolve().parent / "steps"
 STEP_NAMES = {1: "Contrat et ingestion", 2: "Outils du Profiler", 3: "Agents LLM (Domaine + Profiler)",
-              4: "Qualité et nettoyage", 5: "ETL : modèle en étoile", 6: "Orchestrateur LangGraph"}
-STEP_WEIGHTS = {1: 5, 2: 10, 3: 30, 4: 25, 5: 15, 6: 15}       # part approximative du temps total (le LLM domine)
+              4: "Qualité et nettoyage", 5: "ETL : modèle en étoile"}
+STEP_WEIGHTS = {1: 5, 2: 10, 3: 40, 4: 30, 5: 15}              # part approximative du temps total (le LLM domine)
 
 LLM_CELL = """
 LLM = _BIFLOW_LLM
@@ -86,17 +89,6 @@ def _exec_cell(source: str, ns: dict, name: str) -> None:
         value = eval(compile(ast.Expression(last.value), name, "eval"), ns)
         if value is not None:
             _display(value)
-
-
-def _exec_definitions_only(source: str, ns: dict, name: str) -> None:
-    """Mode dégradé : chaque instruction est tentée séparément ; celles qui échouent sont ignorées."""
-    for node in ast.parse(source).body:
-        if isinstance(node, ast.Expr):
-            continue                                 # affichages / démonstrations
-        try:
-            exec(compile(ast.Module(body=[node], type_ignores=[]), name, "exec"), ns)
-        except Exception:
-            pass
 
 
 def _export(ns: dict, job_dir: Path, llm) -> dict:
@@ -159,10 +151,56 @@ def _export(ns: dict, job_dir: Path, llm) -> dict:
         "input": {"tables": len(contract), "rows": int(sum(s.get("rows", 0) for s in stats.values())),
                   "files": len(raw.manifest) if raw is not None else len(contract)},
         "quality_status": ns.get("STATUS"),
-        "review": {k: review.get(k) for k in ("mode", "reviewer", "approved", "escalated", "rejected", "added")},
+        "review": {k: review.get(k) for k in ("mode", "reviewer", "approved", "set_aside")},
         "llm": {"model": getattr(llm, "model_id", None), "calls": getattr(llm, "calls", None),
                 "cache_hits": getattr(llm, "cache_hits", None)},
     }
+
+
+def _deliver(ns: dict, error: str | None) -> dict:
+    """Livraison, sans rien recalculer : le modèle en étoile (base + CSV, déjà produits par l'étape 5) et les données
+    nettoyées, après un contrôle rapide (données brutes inchangées, journal d'audit intact)."""
+    import pandas as pd
+    status = ns.get("STATUS")
+    run_dir = Path(ns["RUN_DIR"]) if ns.get("RUN_DIR") else None
+    etl_ok = bool(ns.get("ETL_STATUS")) and all(s == "testée" for s in ns["ETL_STATUS"].values())
+    if status == "blocked":
+        final = {"status": "blocked", "error": "qualité bloquante : le modèle en étoile n'a pas été construit"}
+    elif error or not etl_ok or run_dir is None:
+        final = {"status": "failed", "error": error or "construction du modèle en étoile incomplète"}
+    else:
+        final = {"status": "success", "error": None}
+    q_run, agent_run, etl_run = ns.get("Q_RUN") or {}, ns.get("AGENT_RUN") or {}, ns.get("ETL_RUN") or {}
+    report = ns.get("PROFILING_REPORT")
+    final["profiler"] = {"investigations": len(ns.get("REQUIRED") or []), "by_agent": len(agent_run.get("done", [])),
+                         "findings": 0 if report is None else len(report),
+                         "interpreted_by_llm": 0 if report is None else int((report["source"] == "LLM").sum())}
+    final["quality"] = {"candidates": len(ns.get("CANDIDATES") or []), "decided_by_agent": q_run.get("decided_by_agent"),
+                        "corrections_applied": len(ns["EXECUTION"]) if "EXECUTION" in ns else 0,
+                        "cells_changed": len(ns["CHANGES"]) if "CHANGES" in ns else 0,
+                        "rows_changed": len(ns["ROW_CHANGES"]) if "ROW_CHANGES" in ns else 0, "quality_status": status}
+    final["etl"] = {"tables_built": sum(s == "testée" for s in (ns.get("ETL_STATUS") or {}).values()),
+                    "tables_expected": len(ns.get("ETL_TEMPLATES") or {}), "built_by_agent": etl_run.get("built_by_agent")}
+    if final["status"] != "success":
+        return final
+    clean_dir = run_dir / "donnees_nettoyees"                  # données nettoyées, une table par fichier
+    clean_dir.mkdir(exist_ok=True)
+    for name, df in ns["SILVER"].items():
+        df.to_csv(clean_dir / f"{name}.csv", index=False)
+    warehouse = run_dir / "warehouse"                         # modèle en étoile : base + CSV (étape 5)
+    raw_ok = bool(ns["checkpoint_raw_integrity"]()["contenu_inchangé"].all())
+    chain_ok, chain_msg = ns["AUDIT"].verify()
+    outputs = {"directory": str(warehouse), "warehouse": str(ns["WH"].path), "cleaned_data": str(clean_dir),
+               "tables": {n: len(d) for n, d in (ns.get("STAR") or {}).items()},
+               "raw_unchanged": raw_ok, "audit_chain": chain_msg}
+    ns["AUDIT"].log("orchestrator", "data_preparation_delivered", outputs)
+    (warehouse / "data_preparation_manifest.json").write_text(json.dumps(
+        {"run_id": ns.get("RUN_ID"), "profiler": final["profiler"], "quality": final["quality"], "etl": final["etl"],
+         "outputs": outputs}, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
+    final["outputs"] = outputs
+    if not (raw_ok and chain_ok):
+        final.update(status="failed", error="contrôle final en échec (données brutes ou journal d'audit modifiés)")
+    return final
 
 
 def _publish_partial(ns: dict, job_dir: Path, llm, completed_step: int) -> None:
@@ -176,26 +214,22 @@ def _publish_partial(ns: dict, job_dir: Path, llm, completed_step: int) -> None:
         print(f"(résultats partiels non publiés : {exc})")
 
 
-def run_pipeline(data_dir: str | Path, job_dir: str | Path, autonomy: str = "risk_based",
-                 human_decision: dict | None = None, llm=None) -> dict:
-    """Lance la Data Preparation Agent sur un dataset. Renvoie (et écrit dans <job>/result.json) le résultat."""
+def run_pipeline(data_dir: str | Path, job_dir: str | Path, llm=None) -> dict:
+    """Lance la Data Preparation Agent (100 % automatique) sur un dataset.
+    Renvoie (et écrit dans <job>/result.json) le résultat."""
     data_dir, job_dir = Path(data_dir).resolve(), Path(job_dir).resolve()
     job_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = STEPS_DIR / "manifest.json"
     if not manifest_path.exists() or NOTEBOOK.stat().st_mtime > manifest_path.stat().st_mtime:
         extract()                                     # notebook modifié (ou étapes absentes) : ré-extraction automatique
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    cells = [m for m in manifest if not m["skip"]]
+    cells = [m for m in manifest if not m["skip"] and m["step"] in STEP_NAMES]   # étapes 1 à 5 (pas l'étape 6)
     progress = Progress(job_dir, cells)
 
     os.environ["BIFLOW_DATA_DIR"] = str(data_dir)     # lu par la cellule 1.1
-    os.environ["BIFLOW_AUTONOMY"] = autonomy
     os.environ.setdefault("BIFLOW_CACHE_DIR", str(Path("biflow_cache").resolve()))   # cache partagé entre les runs
-    if human_decision:                                # lu par la cellule 1.5 (./biflow_overrides.json)
-        (job_dir / "biflow_overrides.json").write_text(json.dumps({"cleaning": human_decision}, ensure_ascii=False),
-                                                       encoding="utf-8")
     cwd = os.getcwd()
-    os.chdir(job_dir)                                 # ./biflow_runs et ./biflow_overrides.json sont propres à ce job
+    os.chdir(job_dir)                                 # ./biflow_runs est propre à ce job
     llm = llm or OllamaLLM()
     module = types.ModuleType("biflow_pipeline")     # un vrai module : nécessaire aux dataclasses du notebook
     sys.modules["biflow_pipeline"] = module
@@ -203,36 +237,32 @@ def run_pipeline(data_dir: str | Path, job_dir: str | Path, autonomy: str = "ris
     ns.update({"display": _display, "_BIFLOW_LLM": llm})
     if hasattr(llm, "bind"):                          # LLM de test : accès à l'état du pipeline
         llm.bind(ns)
-    degraded, result = False, None
+    stop_error, result = None, None
     try:
         if hasattr(llm, "check"):
             llm.check()                               # échoue tout de suite si Ollama n'est pas prêt
         for i, cell in enumerate(cells):
             if i and cell["step"] != cells[i - 1]["step"]:    # une étape vient de se terminer
                 done_step = cells[i - 1]["step"]
-                if not degraded:
-                    _publish_partial(ns, job_dir, llm, done_step)
+                _publish_partial(ns, job_dir, llm, done_step)
                 progress.update(completed_step=done_step)
             progress.at_cell(i, cell)
             print(f"\n### [{i + 1}/{len(cells)}] {cell['title']}", flush=True)
             source = LLM_CELL if cell["kind"] == "llm" else (STEPS_DIR / cell["file"]).read_text(encoding="utf-8")
-            if cell["step"] == 6 and degraded:        # l'orchestrateur reprend la main avec le LLM réactivé
-                degraded, llm.disabled = False, False
-            if degraded:
-                _exec_definitions_only(source, ns, cell["file"])
-                continue
             try:
                 _exec_cell(source, ns, cell["file"])
             except LLMUnavailable:
                 raise
             except Exception as exc:
-                if cell["step"] in (4, 5):            # arrêt « métier » : l'orchestrateur donnera le statut exact
-                    print(f"!! Arrêt à {cell['title']} : {type(exc).__name__} : {exc}\n"
-                          "!! Chargement des définitions restantes ; l'orchestrateur décide du statut final.", flush=True)
-                    degraded, llm.disabled = True, True
-                    _exec_definitions_only(source, ns, cell["file"])
-                else:
+                if cell["step"] not in (4, 5):
                     raise
+                stop_error = f"{cell['title']} : {type(exc).__name__} : {exc}"     # arrêt « métier » (qualité bloquante…)
+                print(f"!! Arrêt à {stop_error}", flush=True)
+                break
+        progress.update(completed_step=5 if stop_error is None else progress.state["completed_step"],
+                        step="Livraison", cell="Livraison du modèle en étoile et des données nettoyées", percent=99)
+        print("\n### Livraison : modèle en étoile et données nettoyées", flush=True)
+        ns["DATA_PREP_RESULT"] = _deliver(ns, stop_error)
         result = _export(ns, job_dir, llm)
     except Exception as exc:
         traceback.print_exc()
@@ -240,7 +270,6 @@ def run_pipeline(data_dir: str | Path, job_dir: str | Path, autonomy: str = "ris
                   "llm": {"model": getattr(llm, "model_id", None), "calls": getattr(llm, "calls", 0)}}
     finally:
         os.chdir(cwd)
-    result["autonomy"] = autonomy
     result["data_dir"] = str(data_dir)
     result["finished_at"] = datetime.now(timezone.utc).isoformat()
     for obj in gc.get_objects():                      # ferme les entrepôts (sous Windows, un fichier ouvert est verrouillé)

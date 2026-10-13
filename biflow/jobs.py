@@ -40,8 +40,7 @@ def _safe_extract(data: bytes, target: Path) -> None:
             dest.write_bytes(zf.read(member))
 
 
-def create_job(files: list[tuple[str, bytes]] | None, name: str, autonomy: str, model: str,
-               decision: dict | None = None, input_from: str | None = None) -> str:
+def create_job(files: list[tuple[str, bytes]] | None, name: str, model: str, input_from: str | None = None) -> str:
     """Crée le dossier du traitement et y dépose les données (fichiers envoyés, ou copie d'un traitement précédent)."""
     job_id = datetime.now().strftime("%Y%m%d_%H%M%S")
     job_dir = JOBS_DIR / job_id
@@ -60,12 +59,9 @@ def create_job(files: list[tuple[str, bytes]] | None, name: str, autonomy: str, 
     if not any(p.suffix.lower() in DATA_EXTENSIONS for p in input_dir.rglob("*") if p.is_file()):
         shutil.rmtree(job_dir)
         raise ValueError("Aucun fichier de données reconnu (CSV, TSV, TXT, Excel, Parquet, JSON, ou un zip qui en contient).")
-    meta = {"id": job_id, "name": name or job_id, "autonomy": autonomy, "model": model,
-            "created": datetime.now().isoformat(timespec="seconds"), "from_job": input_from,
-            "human_decision": decision}
+    meta = {"id": job_id, "name": name or job_id, "model": model,
+            "created": datetime.now().isoformat(timespec="seconds"), "from_job": input_from}
     (job_dir / "job.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
-    if decision:
-        (job_dir / "decision.json").write_text(json.dumps(decision, ensure_ascii=False, indent=1), encoding="utf-8")
     return job_id
 
 
@@ -74,9 +70,7 @@ def launch(job_id: str) -> None:
     job_dir = JOBS_DIR / job_id
     meta = _read_json(job_dir / "job.json")
     cmd = [sys.executable, "-m", "biflow", "run", str(job_dir / "input"), "--job-dir", str(job_dir),
-           "--autonomy", meta["autonomy"], "--model", meta["model"]]
-    if (job_dir / "decision.json").exists():
-        cmd += ["--decision", str(job_dir / "decision.json")]
+           "--model", meta.get("model", "qwen2.5:7b")]
     env = {**os.environ, "PYTHONUTF8": "1", "PYTHONUNBUFFERED": "1"}
     log = open(job_dir / "run.log", "w", encoding="utf-8")
     common = dict(cwd=ROOT, stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, env=env)
@@ -94,7 +88,7 @@ def launch(job_id: str) -> None:
 
 
 def status(job_id: str) -> str:
-    """running · success · awaiting_human · blocked · failed · interrupted"""
+    """running · success · blocked · failed · interrupted"""
     job_dir = JOBS_DIR / job_id
     result = _read_json(job_dir / "result.json")
     if result:

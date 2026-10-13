@@ -6,6 +6,7 @@ flags = ISSUES_AFTER.groupby(["table", "_source_row_id"])["rule"].agg(lambda r: 
 for t in SILVER:
     table_flags = flags.xs(t, level="table") if t in flags.index.get_level_values("table") else pd.Series(dtype="string")
     SILVER[t]["_dq_flags"] = SILVER[t]["_source_row_id"].map(table_flags).astype("string")
+mark_estimated_values()                                  # lignes dont une valeur a été estimée (4.1 bis)
 
 comparison = pd.DataFrame({"avant": SCORES_BEFORE, "après": SCORES_AFTER})
 comparison["gain"] = (comparison["après"] - comparison["avant"]).round(2)

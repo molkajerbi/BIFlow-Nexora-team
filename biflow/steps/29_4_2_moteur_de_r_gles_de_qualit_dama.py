@@ -74,7 +74,7 @@ def build_rules() -> list[Rule]:
                               + (f" et même {', '.join(context)}" if context else "") + ", identifiant différent",
                               lambda S, t=t, i=identifying, c=context: near_duplicate_mask(S[t], i, c)))
     # --- Règles métier APPRISES des données (dans une table, puis entre tables) ---
-    return rules + learned_business_rules() + learned_cross_table_rules()
+    return rules + learned_business_rules() + learned_cross_table_rules() + missing_and_outlier_rules()
 
 
 def normalized(s: pd.Series) -> pd.Series:

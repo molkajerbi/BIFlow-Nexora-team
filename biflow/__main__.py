@@ -2,13 +2,15 @@
 
     python -m biflow extract                         # notebook -> biflow/steps/
     python -m biflow check                           # Ollama et le modèle sont-ils prêts ?
-    python -m biflow run data/olist                  # lance le pipeline complet sur un dataset
-    python -m biflow run data/olist --model qwen2.5:3b --autonomy manual --decision decision.json
+    python -m biflow run data/olist                  # lance le pipeline complet (100 % automatique) sur un dataset
+    python -m biflow run data/olist --model qwen2.5:3b
 """
 from __future__ import annotations
 
 import argparse
+import faulthandler
 import json
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -17,6 +19,8 @@ from pathlib import Path
 def main() -> int:
     for stream in (sys.stdout, sys.stderr):           # accents et symboles lisibles aussi sous Windows
         stream.reconfigure(encoding="utf-8", errors="replace")
+    faulthandler.enable()                             # un plantage « natif » (DLL, mémoire) laisse une trace dans le journal
+    print(f"[BIFlow] processus {os.getpid()} démarré le {datetime.now():%d/%m/%Y à %H:%M:%S}", flush=True)
     parser = argparse.ArgumentParser(prog="biflow", description="BIFlow — Data Preparation Agent")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("extract", help="extrait les étapes du notebook vers biflow/steps/")
@@ -25,9 +29,7 @@ def main() -> int:
     run = sub.add_parser("run", help="lance le pipeline sur un dossier de données")
     run.add_argument("data_dir", help="dossier contenant UN dataset (CSV, TSV, Excel, Parquet, JSON)")
     run.add_argument("--job-dir", default=None, help="dossier de travail du run (par défaut jobs/<date>)")
-    run.add_argument("--autonomy", choices=["risk_based", "manual"], default="risk_based")
     run.add_argument("--model", default=None, help="modèle Ollama (par défaut qwen2.5:7b)")
-    run.add_argument("--decision", default=None, help="fichier JSON de décision humaine sur le plan de nettoyage")
     args = parser.parse_args()
 
     if args.command == "extract":
@@ -49,9 +51,7 @@ def main() -> int:
 
     from .engine import run_pipeline
     job_dir = Path(args.job_dir or Path("jobs") / datetime.now().strftime("%Y%m%d_%H%M%S"))
-    decision = json.loads(Path(args.decision).read_text(encoding="utf-8")) if args.decision else None
-    result = run_pipeline(args.data_dir, job_dir, autonomy=args.autonomy, human_decision=decision,
-                          llm=OllamaLLM(model_id=args.model))
+    result = run_pipeline(args.data_dir, job_dir, llm=OllamaLLM(model_id=args.model))
     print("\n" + "=" * 70)
     print(f"Statut : {result['status']}" + (f" · {result['error']}" if result.get("error") else ""))
     print(f"Domaine : {result.get('domain')}")

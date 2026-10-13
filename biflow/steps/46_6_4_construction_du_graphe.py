@@ -1,6 +1,6 @@
-PIPELINE = ["preflight", "profiler_agent", "quality_agent", "human_review", "apply_corrections", "etl_agent", "finalize"]
+PIPELINE = ["preflight", "profiler_agent", "quality_agent", "risk_review", "apply_corrections", "etl_agent", "finalize"]
 NODES = {"preflight": node_preflight, "profiler_agent": node_profiler, "quality_agent": node_quality,
-         "human_review": node_human_review, "apply_corrections": node_apply, "etl_agent": node_etl,
+         "risk_review": node_risk_review, "apply_corrections": node_apply, "etl_agent": node_etl,
          "finalize": node_finalize, "report": node_report}
 
 builder = StateGraph(DataPrepState)

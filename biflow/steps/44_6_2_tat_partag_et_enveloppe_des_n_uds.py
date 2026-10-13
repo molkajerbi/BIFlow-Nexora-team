@@ -3,9 +3,7 @@ from typing import TypedDict
 
 class DataPrepState(TypedDict, total=False):
     run_id: str
-    human_decision: dict | None      # décision humaine facultative
-    autonomy: str                    # risk_based (automatique) ou manual (attend un humain)
-    status: str                      # running · awaiting_human · blocked · failed · success
+    status: str                      # running · blocked · failed · success
     error: str | None
     history: list                    # une entrée par nœud exécuté
     profiler: dict
@@ -14,7 +12,7 @@ class DataPrepState(TypedDict, total=False):
     outputs: dict
 
 
-STOP_STATES = {"failed", "blocked", "awaiting_human"}
+STOP_STATES = {"failed", "blocked"}
 
 
 def graph_node(name: str):

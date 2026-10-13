@@ -33,8 +33,8 @@
  },
  {
   "n": 5,
-  "file": "05_1_5_contrat_actif_score_de_confiance_et_.py",
-  "title": "1.5 Contrat actif, score de confiance et corrections humaines facultatives",
+  "file": "05_1_5_contrat_actif_et_score_de_confiance.py",
+  "title": "1.5 Contrat actif et score de confiance",
   "step": 1,
   "kind": "code",
   "skip": null
@@ -217,176 +217,176 @@
  },
  {
   "n": 28,
-  "file": "28_4_2_moteur_de_r_gles_de_qualit_dama.py",
-  "title": "4.2 Moteur de règles de qualité (DAMA)",
+  "file": "28_4_1_bis_valeurs_manquantes_impossibles_e.py",
+  "title": "4.1 bis Valeurs manquantes, impossibles et extrêmes : la politique de traitement",
   "step": 4,
   "kind": "code",
   "skip": null
  },
  {
   "n": 29,
-  "file": "29_4_3_score_de_qualit_par_dimension_avant_.py",
-  "title": "4.3 Score de qualité par dimension (avant nettoyage)",
+  "file": "29_4_2_moteur_de_r_gles_de_qualit_dama.py",
+  "title": "4.2 Moteur de règles de qualité (DAMA)",
   "step": 4,
   "kind": "code",
   "skip": null
  },
  {
   "n": 30,
-  "file": "30_4_4_corrections_candidates_et_bac_sable.py",
-  "title": "4.4 Corrections candidates et bac à sable",
+  "file": "30_4_3_score_de_qualit_par_dimension_avant_.py",
+  "title": "4.3 Score de qualité par dimension (avant nettoyage)",
   "step": 4,
   "kind": "code",
   "skip": null
  },
  {
   "n": 31,
-  "file": "31_4_5_agent_qualit_simuler_observer_d_cide.py",
-  "title": "4.5 Agent Qualité : simuler → observer → décider",
+  "file": "31_4_4_corrections_candidates_et_bac_sable.py",
+  "title": "4.4 Corrections candidates et bac à sable",
   "step": 4,
   "kind": "code",
   "skip": null
  },
  {
   "n": 32,
-  "file": "32_4_6_validation_selon_le_risque_human_in_.py",
-  "title": "4.6 Validation selon le risque (human-in-the-loop)",
+  "file": "32_4_5_agent_qualit_tester_observer_d_cider.py",
+  "title": "4.5 Agent Qualité : tester → observer → décider",
   "step": 4,
   "kind": "code",
   "skip": null
  },
  {
   "n": 33,
-  "file": "33_4_7_application_contr_l_e_des_correction.py",
-  "title": "4.7 Application contrôlée des corrections",
+  "file": "33_4_6_validation_automatique_selon_le_risq.py",
+  "title": "4.6 Validation automatique selon le risque",
   "step": 4,
   "kind": "code",
   "skip": null
  },
  {
   "n": 34,
-  "file": "34_4_8_re_validation_et_data_quality_report.py",
-  "title": "4.8 Re-validation et Data Quality Report",
+  "file": "34_4_7_application_contr_l_e_des_correction.py",
+  "title": "4.7 Application contrôlée des corrections",
   "step": 4,
   "kind": "code",
   "skip": null
  },
  {
   "n": 35,
-  "file": "35_4_9_point_de_contr_le_de_l_tape_4.py",
-  "title": "4.9 Point de contrôle de l'étape 4",
+  "file": "35_4_8_re_validation_et_data_quality_report.py",
+  "title": "4.8 Re-validation et Data Quality Report",
   "step": 4,
   "kind": "code",
   "skip": null
  },
  {
   "n": 36,
-  "file": "36_5_1_pr_contr_le_et_entrep_t_sql.py",
+  "file": "36_4_9_point_de_contr_le_de_l_tape_4.py",
+  "title": "4.9 Point de contrôle de l'étape 4",
+  "step": 4,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 37,
+  "file": "37_5_1_pr_contr_le_et_entrep_t_sql.py",
   "title": "5.1 Pré-contrôle et entrepôt SQL",
   "step": 5,
   "kind": "code",
   "skip": null
  },
  {
-  "n": 37,
-  "file": "37_5_2_staging_et_indicateurs_de_temps_d_du.py",
+  "n": 38,
+  "file": "38_5_2_staging_et_indicateurs_de_temps_d_du.py",
   "title": "5.2 Staging et indicateurs de temps déduits des données",
   "step": 5,
   "kind": "code",
   "skip": null
  },
  {
-  "n": 38,
-  "file": "38_5_3_conception_automatique_du_mod_le_en_.py",
+  "n": 39,
+  "file": "39_5_3_conception_automatique_du_mod_le_en_.py",
   "title": "5.3 Conception automatique du modèle en étoile et tests",
   "step": 5,
   "kind": "code",
   "skip": null
  },
  {
-  "n": 39,
-  "file": "39_5_4_etl_agent_planification_et_construct.py",
+  "n": 40,
+  "file": "40_5_4_etl_agent_planification_et_construct.py",
   "title": "5.4 ETL Agent : planification et construction",
   "step": 5,
   "kind": "code",
   "skip": null
  },
  {
-  "n": 40,
-  "file": "40_5_5_r_sultats_des_tests_et_pi_ge_du_doub.py",
+  "n": 41,
+  "file": "41_5_5_r_sultats_des_tests_et_pi_ge_du_doub.py",
   "title": "5.5 Résultats des tests et piège du double comptage",
   "step": 5,
   "kind": "code",
   "skip": null
  },
  {
-  "n": 41,
-  "file": "41_5_6_export_et_point_de_contr_le_de_l_tap.py",
+  "n": 42,
+  "file": "42_5_6_export_et_point_de_contr_le_de_l_tap.py",
   "title": "5.6 Export et point de contrôle de l'étape 5",
   "step": 5,
   "kind": "code",
   "skip": null
  },
  {
-  "n": 42,
-  "file": "42_6_1_moteur_de_graphe.py",
+  "n": 43,
+  "file": "43_6_1_moteur_de_graphe.py",
   "title": "6.1 Moteur de graphe",
   "step": 6,
   "kind": "code",
   "skip": null
  },
  {
-  "n": 43,
-  "file": "43_6_2_tat_partag_et_enveloppe_des_n_uds.py",
+  "n": 44,
+  "file": "44_6_2_tat_partag_et_enveloppe_des_n_uds.py",
   "title": "6.2 État partagé et enveloppe des nœuds",
   "step": 6,
   "kind": "code",
   "skip": null
  },
  {
-  "n": 44,
-  "file": "44_6_3_les_n_uds_du_graphe.py",
+  "n": 45,
+  "file": "45_6_3_les_n_uds_du_graphe.py",
   "title": "6.3 Les nœuds du graphe",
   "step": 6,
   "kind": "code",
   "skip": null
  },
  {
-  "n": 45,
-  "file": "45_6_4_construction_du_graphe.py",
+  "n": 46,
+  "file": "46_6_4_construction_du_graphe.py",
   "title": "6.4 Construction du graphe",
   "step": 6,
   "kind": "code",
   "skip": null
  },
  {
-  "n": 46,
-  "file": "46_6_5_point_d_entr_e_unique.py",
+  "n": 47,
+  "file": "47_6_5_point_d_entr_e_unique.py",
   "title": "6.5 Point d'entrée unique",
   "step": 6,
   "kind": "code",
   "skip": null
  },
  {
-  "n": 47,
-  "file": "47_6_6_d_monstration_mode_manuel.py",
-  "title": "6.6 Démonstration : mode manuel",
-  "step": 6,
-  "kind": "code",
-  "skip": "démo du mode manuel (6.6)"
- },
- {
   "n": 48,
-  "file": "48_6_7_ex_cution_compl_te_en_une_commande.py",
-  "title": "6.7 Exécution complète en une commande",
+  "file": "48_6_6_ex_cution_compl_te_en_une_commande.py",
+  "title": "6.6 Exécution complète en une commande",
   "step": 6,
   "kind": "code",
   "skip": null
  },
  {
   "n": 49,
-  "file": "49_6_8_bilan_de_la_data_preparation_agent.py",
-  "title": "6.8 Bilan de la Data Preparation Agent",
+  "file": "49_6_7_bilan_de_la_data_preparation_agent.py",
+  "title": "6.7 Bilan de la Data Preparation Agent",
   "step": 6,
   "kind": "code",
   "skip": null

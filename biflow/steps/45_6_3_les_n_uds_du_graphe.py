@@ -56,17 +56,13 @@ def node_quality(state: DataPrepState) -> dict:
     return {"status": "running", "quality": metrics, "summary": metrics}
 
 
-@graph_node("human_review")
-def node_human_review(state: DataPrepState) -> dict:
-    """Décision humaine si elle est fournie ; sinon politique selon le risque ; en mode manuel sans décision : attente."""
+@graph_node("risk_review")
+def node_risk_review(state: DataPrepState) -> dict:
+    """Validation automatique selon le risque (aucune attente humaine)."""
     global APPROVED, REVIEW
-    REVIEW = review_plan(state.get("human_decision"), state.get("autonomy"))
-    if REVIEW["approved"] is None:
-        return {"status": "awaiting_human",
-                "summary": {"plan": CLEANING_PLAN[["id", "correction", "table", "colonne"]].to_dict(orient="records")}}
+    REVIEW = review_plan()
     APPROVED = REVIEW["approved"]
-    return {"status": "running", "summary": {k: REVIEW[k] for k in ("mode", "approved") if k in REVIEW}
-                                            | {"escalated": REVIEW.get("escalated", {})}}
+    return {"status": "running", "summary": {"mode": REVIEW["mode"], "approved": APPROVED, "set_aside": REVIEW["set_aside"]}}
 
 
 @graph_node("apply_corrections")
@@ -84,6 +80,7 @@ def node_apply(state: DataPrepState) -> dict:
     for t in SILVER:
         table_flags = flags.xs(t, level="table") if t in flags.index.get_level_values("table") else pd.Series(dtype="string")
         SILVER[t]["_dq_flags"] = SILVER[t]["_source_row_id"].map(table_flags).astype("string")
+    mark_estimated_values()                              # lignes dont une valeur a été estimée (4.1 bis)
     blocking_left = int(RULES_AFTER.query("severity == 'blocking'")["violations"].sum())
     STATUS = "blocked" if blocking_left else ("ready_with_warnings" if RULES_AFTER["violations"].sum() else "ready")
     metrics = {"corrections_applied": len(EXECUTION), "cells_changed": len(CHANGES), "rows_changed": len(ROW_CHANGES),
@@ -143,10 +140,9 @@ def node_finalize(state: DataPrepState) -> dict:
 @graph_node("report")
 def node_report(state: DataPrepState) -> dict:
     """Nœud d'arrêt : explique pourquoi le pipeline s'est interrompu."""
-    reasons = {"awaiting_human": "en attente de la validation humaine du plan de nettoyage",
-               "blocked": "qualité bloquante : l'ETL n'a pas été lancé",
+    reasons = {"blocked": "qualité bloquante : l'ETL n'a pas été lancé",
                "failed": "erreur pendant l'exécution"}
     return {"summary": {"status": state.get("status"), "reason": reasons.get(state.get("status")), "error": state.get("error")}}
 
 
-print("7 nœuds définis : preflight, profiler_agent, quality_agent, human_review, apply_corrections, etl_agent, finalize (+ report)")
+print("7 nœuds définis : preflight, profiler_agent, quality_agent, risk_review, apply_corrections, etl_agent, finalize (+ report)")

@@ -39,6 +39,17 @@ def human_text(text) -> str:
     return text.strip()
 
 
+def show_value(v, quoted: bool = False) -> str:
+    """Une valeur avant / après correction, lisible : « vide », un nombre sans décimales inutiles, ou un texte."""
+    if v is None or (isinstance(v, float) and math.isnan(v)):
+        return "vide"
+    if isinstance(v, str) and re.fullmatch(r"-?\d+(\.\d+)?", v.strip()):
+        v = float(v)                                  # nombre relu depuis un fichier : même écriture que les autres
+    if isinstance(v, (int, float)):
+        return f"{v:,.2f}".replace(",", " ").replace(".", ",").rstrip("0").rstrip(",")
+    return repr(v) if quoted and isinstance(v, str) else str(v)
+
+
 def fmt_int(n) -> str:
     try:
         return f"{int(n):,}".replace(",", " ")
@@ -56,13 +67,22 @@ SEVERITY = {"blocking": ("Critique", "crit"), "warning": ("À surveiller", "warn
 ACTION = {"conserver": "Aucune action nécessaire", "signaler": "Signaler aux utilisateurs",
           "revue_humaine": "À examiner par une personne", "standardiser": "Uniformiser la mise en forme",
           "dedoublonner": "Supprimer les doublons", "agreger_avant_jointure": "Regrouper avant de croiser les tables",
-          "completer_reference": "Compléter le référentiel"}
+          "completer_reference": "Compléter le référentiel",
+          "imputer": "Estimer les valeurs manquantes", "plafonner": "Ramener les valeurs extrêmes à une limite",
+          "corriger_valeur": "Remplacer les valeurs impossibles"}
 CORRECTION = {"strip_whitespace": ("Espaces superflus retirés", "Les espaces en début et en fin de valeur sont supprimés."),
               "normalize_missing": ("Valeurs vides uniformisées", "« NA », « null », « - »… deviennent de vraies valeurs vides."),
               "harmonize_variants": ("Orthographes harmonisées", "Les variantes d'une même valeur (casse, accents) sont unifiées."),
-              "drop_exact_duplicates": ("Doublons supprimés", "Les lignes copiées à l'identique ne sont gardées qu'une fois.")}
-DECIDED_BY = {"agent": "Décidé par l'IA", "fallback": "Règle de sécurité", "LLM": "Analysé par l'IA",
-              "politique (déblocage)": "Règle automatique", "humain (contre l'avis de l'agent)": "Décision manuelle"}
+              "drop_exact_duplicates": ("Doublons supprimés", "Les lignes copiées à l'identique ne sont gardées qu'une fois."),
+              "impute_missing": ("Valeurs manquantes complétées", "Une case vide reçoit la valeur typique des lignes semblables "
+                                 "(médiane, ou catégorie déduite des autres colonnes), sinon « Non renseigné ». "
+                                 "Une valeur estimée est marquée sur sa ligne."),
+              "replace_impossible": ("Valeurs impossibles remplacées", "Une valeur négative là où elle n'a pas de sens est "
+                                     "remplacée par la valeur typique des lignes semblables."),
+              "cap_outliers": ("Valeurs extrêmes plafonnées", "Une valeur très éloignée des autres est ramenée à la limite "
+                               "haute ou basse de son groupe. La valeur d'origine reste dans le journal.")}
+DECIDED_BY = {"agent": "Décidé par l'IA", "fallback": "Décidé automatiquement d'après le test", "LLM": "Analysé par l'IA",
+              "politique (déblocage)": "Décidé automatiquement d'après le test"}
 QUALITY_STATUS = {"ready": ("Données prêtes pour l'analyse", "ok"),
                   "ready_with_warnings": ("Données prêtes, avec quelques points à surveiller", "ok"),
                   "blocked": ("Données bloquées : un problème critique doit être résolu", "crit")}
@@ -545,7 +565,7 @@ STATIONS = [
     ("Diagnostic", "examine la qualité de chaque colonne"),
     ("Nettoyage", "corrige ce qui peut l'être sans risque"),
     ("Modélisation", "construit le modèle en étoile"),
-    ("Contrôle final", "vérifie l'ensemble avant livraison"),
+    ("Livraison", "livre le modèle en étoile et les données nettoyées"),
 ]
 STATION_ICONS = ["search", "activity", "sparkles", "star", "shield"]
 STATION_DONE_AT = [1, 3, 4, 5, 6]                   # étape du moteur après laquelle chaque station est terminée

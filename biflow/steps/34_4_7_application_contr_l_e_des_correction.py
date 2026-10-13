@@ -31,9 +31,13 @@ def apply_correction(cid: str, correction: str, table: str, column: str) -> dict
     return result
 
 
+APPLY_ORDER = {"replace_impossible": 1, "impute_missing": 2, "cap_outliers": 3, "drop_exact_duplicates": 4}
+
+
 def plan_in_order():
-    """Corrections de valeurs d'abord, dédoublonnage en dernier (il retire aussi les copies révélées par l'harmonisation)."""
-    return sorted(CLEANING_PLAN.itertuples(), key=lambda p: (p.correction == "drop_exact_duplicates", p.id))
+    """Formats d'abord, puis valeurs impossibles, valeurs manquantes, valeurs extrêmes (calculées sur des données
+    complètes), et dédoublonnage en dernier (il retire aussi les copies révélées par les corrections précédentes)."""
+    return sorted(CLEANING_PLAN.itertuples(), key=lambda p: (APPLY_ORDER.get(p.correction, 0), p.id))
 
 
 EXECUTION = pd.DataFrame([apply_correction(p.id, p.correction, p.table, p.colonne)
