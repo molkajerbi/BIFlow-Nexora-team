@@ -1,0 +1,17 @@
+# Environnement Python (se réinstalle avec : pip install -r requirements.txt)
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Données et résultats générés à chaque analyse (trop lourds)
+data/
+jobs/
+biflow_cache/
+*.duckdb
+*.zip
+
+# Fichiers système et éditeur
+.ipynb_checkpoints/
+.DS_Store
+Thumbs.db
