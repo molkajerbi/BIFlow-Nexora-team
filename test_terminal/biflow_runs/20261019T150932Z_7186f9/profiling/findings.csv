@@ -1,8 +1,0 @@
-table,colonne,dimension,constat
-sample_superstore,Product Name,validité,16 valeur(s) non conforme(s) au type category
-sample_superstore,Product Name,format,16 valeur(s) avec espaces parasites
-sample_superstore,Profit,plausibilité,1871 valeur(s) négative(s)
-sample_superstore,Discount,plausibilité,4798 valeur(s) à zéro
-sample_superstore,Profit,plausibilité,65 valeur(s) à zéro
-sample_superstore,Sales,plausibilité,668 valeur(s) extrême(s) (> 3 IQR)
-sample_superstore,Profit,plausibilité,1168 valeur(s) extrême(s) (> 3 IQR)

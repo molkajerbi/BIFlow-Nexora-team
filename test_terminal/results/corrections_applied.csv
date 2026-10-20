@@ -1,3 +1,0 @@
-id,correction,table,column,rows_before,rows_after,effect
-C01,strip_whitespace,sample_superstore,Product Name,9994,9994,16
-C02,cap_outliers,sample_superstore,Sales,9994,9994,3

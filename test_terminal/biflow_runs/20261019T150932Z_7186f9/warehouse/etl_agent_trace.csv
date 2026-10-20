@@ -1,6 +1,0 @@
-step,status,action,template,reason,detail
-1,acceptée,build,dim_date,Construire la dimension date en premier pour éviter les dépendances circulaires.,1464 lignes · tests OK
-2,acceptée,build,dim_customer,Construire la dimension customer après la date pour des liens cohérents.,793 lignes · tests OK
-3,acceptée,build,dim_product,La dimension produit est la dernière dimension à construire avant de pouvoir créer le fait.,1862 lignes · tests OK
-4,acceptée,build,fact_sample_superstore,Construire le fait après les dimensions correspondantes,9994 lignes · tests OK
-5,terminée,finish,,,modèle en étoile complet et testé

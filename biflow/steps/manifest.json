@@ -593,143 +593,151 @@
  },
  {
   "n": 75,
-  "file": "075_10_5_contr_les_et_point_de_contr_le.py",
-  "title": "10.5 Contrôles et point de contrôle",
+  "file": "075_10_4_g_n_ration_du_dashboard.py",
+  "title": "10.4 Génération du dashboard",
   "step": 10,
   "kind": "code",
   "skip": null
  },
  {
   "n": 76,
-  "file": "076_11_1_registre_des_tapes.py",
+  "file": "076_10_5_contr_les_et_point_de_contr_le.py",
+  "title": "10.5 Contrôles et point de contrôle",
+  "step": 10,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 77,
+  "file": "077_11_1_registre_des_tapes.py",
   "title": "11.1 Registre des étapes",
   "step": 11,
   "kind": "code",
   "skip": null
  },
  {
-  "n": 77,
-  "file": "077_11_2_graphe_d_orchestration.py",
+  "n": 78,
+  "file": "078_11_2_graphe_d_orchestration.py",
   "title": "11.2 Graphe d'orchestration",
   "step": 11,
   "kind": "code",
   "skip": null
  },
  {
-  "n": 78,
-  "file": "078_11_3_point_d_entr_e_unique.py",
+  "n": 79,
+  "file": "079_11_3_point_d_entr_e_unique.py",
   "title": "11.3 Point d'entrée unique",
   "step": 11,
   "kind": "code",
   "skip": null
  },
  {
-  "n": 79,
-  "file": "079_11_4_ex_cution_compl_te_en_un_appel.py",
+  "n": 80,
+  "file": "080_11_4_ex_cution_compl_te_en_un_appel.py",
   "title": "11.4 Exécution complète en un appel",
   "step": 11,
   "kind": "code",
   "skip": "relance de la partie 2 par son orchestrateur (11.4)"
  },
  {
-  "n": 80,
-  "file": "080_11_5_reprise_partir_d_une_tape_contr_les.py",
+  "n": 81,
+  "file": "081_11_5_reprise_partir_d_une_tape_contr_les.py",
   "title": "11.5 Reprise à partir d'une étape, contrôles et point de contrôle",
   "step": 11,
   "kind": "code",
   "skip": "démo de reprise (11.5)"
  },
  {
-  "n": 81,
-  "file": "081_11_6_diagnostic_de_reproductibilit.py",
+  "n": 82,
+  "file": "082_11_6_diagnostic_de_reproductibilit.py",
   "title": "11.6 Diagnostic de reproductibilité",
   "step": 11,
   "kind": "code",
   "skip": "diagnostic de reproductibilité (11.6)"
  },
  {
-  "n": 82,
-  "file": "082_12_1_registre_des_d_cisions.py",
+  "n": 83,
+  "file": "083_12_1_registre_des_d_cisions.py",
   "title": "12.1 Registre des décisions",
   "step": 12,
   "kind": "code",
   "skip": null
  },
  {
-  "n": 83,
-  "file": "083_12_2_r_gles_du_syst_me_comment_chaque_ag.py",
+  "n": 84,
+  "file": "084_12_2_r_gles_du_syst_me_comment_chaque_ag.py",
   "title": "12.2 Règles du système : comment chaque agent décide",
   "step": 12,
   "kind": "code",
   "skip": null
  },
  {
-  "n": 84,
-  "file": "084_12_3_moteur_de_recherche_des_explication.py",
+  "n": 85,
+  "file": "085_12_3_moteur_de_recherche_des_explication.py",
   "title": "12.3 Moteur de recherche des explications",
   "step": 12,
   "kind": "code",
   "skip": null
  },
  {
-  "n": 85,
-  "file": "085_12_4_r_ponse_les_r_gles_expliquent_le_ll.py",
+  "n": 86,
+  "file": "086_12_4_r_ponse_les_r_gles_expliquent_le_ll.py",
   "title": "12.4 Réponse : les règles expliquent, le LLM reformule, le code vérifie",
   "step": 12,
   "kind": "code",
   "skip": null
  },
  {
-  "n": 86,
-  "file": "086_12_5_le_chat_posez_vos_questions.py",
+  "n": 87,
+  "file": "087_12_5_le_chat_posez_vos_questions.py",
   "title": "12.5 Le chat : posez vos questions",
   "step": 12,
   "kind": "code",
   "skip": null
  },
  {
-  "n": 87,
-  "file": "087_12_6_valuation_et_point_de_contr_le.py",
+  "n": 88,
+  "file": "088_12_6_valuation_et_point_de_contr_le.py",
   "title": "12.6 Évaluation et point de contrôle",
   "step": 12,
   "kind": "code",
   "skip": null
  },
  {
-  "n": 88,
-  "file": "088_13_1_graphe_global.py",
+  "n": 89,
+  "file": "089_13_1_graphe_global.py",
   "title": "13.1 Graphe global",
   "step": 13,
   "kind": "code",
   "skip": "graphe global : le moteur joue ce rôle (13.1)"
  },
  {
-  "n": 89,
-  "file": "089_13_2_point_d_entr_e_unique.py",
+  "n": 90,
+  "file": "090_13_2_point_d_entr_e_unique.py",
   "title": "13.2 Point d'entrée unique",
   "step": 13,
   "kind": "code",
   "skip": "point d'entrée global : le moteur joue ce rôle (13.2)"
  },
  {
-  "n": 90,
-  "file": "090_13_3_ex_cution_compl_te_de_a_z.py",
+  "n": 91,
+  "file": "091_13_3_ex_cution_compl_te_de_a_z.py",
   "title": "13.3 Exécution complète de A à Z",
   "step": 13,
   "kind": "code",
   "skip": "relance de A à Z (13.3)"
  },
  {
-  "n": 91,
-  "file": "091_13_4_bilan_final_et_point_de_contr_le.py",
+  "n": 92,
+  "file": "092_13_4_bilan_final_et_point_de_contr_le.py",
   "title": "13.4 Bilan final et point de contrôle",
   "step": 13,
   "kind": "code",
   "skip": "bilan de la relance 13.3 (13.4)"
  },
  {
-  "n": 92,
-  "file": "092_13_5_le_chat_xai_sur_le_run_complet.py",
+  "n": 93,
+  "file": "093_13_5_le_chat_xai_sur_le_run_complet.py",
   "title": "13.5 Le chat XAI sur le run complet",
   "step": 13,
   "kind": "code",

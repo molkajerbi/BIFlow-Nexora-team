@@ -1,3 +1,0 @@
-step,status,action,table,reason,detail,llm_output
-1,acceptée,detect_anomalies,sample_superstore,Cette table contient des mesures numériques importantes qui nécessitent une vérification des valeurs anormales.,outil exécuté,
-2,terminée,finish,,,toutes les investigations utiles sont faites,

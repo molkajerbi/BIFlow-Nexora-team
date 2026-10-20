@@ -1,5 +1,0 @@
-table,lignes,colonnes,fk_Customer ID,fk_Order Date_date_key,fk_Product ID,fk_Ship Date_date_key,grain_unique,lineage_complete,row_count,sum_Discount,sum_Profit,sum_Quantity,sum_Sales,OK
-dim_date,1464,10,,,,,True,,True,,,,,True
-dim_customer,793,5,,,,,True,,True,,,,,True
-dim_product,1862,5,,,,,True,,True,,,,,True
-fact_sample_superstore,9994,26,True,True,True,True,True,True,True,True,True,True,True,True

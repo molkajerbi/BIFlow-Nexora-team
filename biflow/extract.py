@@ -56,9 +56,11 @@ def extract(notebook: Path = NOTEBOOK) -> list[dict]:
         for old, new in PATCHES:
             source = source.replace(old, new)
         if cell["cell_type"] == "markdown":
-            titles = re.findall(r"^#{1,3}\s+(.+)$", source, flags=re.M)
-            if titles:
-                heading = titles[-1].strip()
+            # titre numéroté (« ## 7.1 Pont… »), même si la cellule a été collée avec des « # » en trop devant
+            titles = [re.sub(r"^[#\s]+", "", line).strip() for line in source.splitlines() if line.lstrip().startswith("#")]
+            numbered = [t for t in titles if re.match(r"\d+\.\d+", t)]
+            if numbered:
+                heading = numbered[-1]
             continue
         if cell["cell_type"] != "code" or not source.strip():
             continue

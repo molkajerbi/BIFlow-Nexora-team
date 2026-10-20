@@ -40,7 +40,8 @@ def _safe_extract(data: bytes, target: Path) -> None:
             dest.write_bytes(zf.read(member))
 
 
-def create_job(files: list[tuple[str, bytes]] | None, name: str, model: str, input_from: str | None = None) -> str:
+def create_job(files: list[tuple[str, bytes]] | None, name: str, model: str, input_from: str | None = None,
+               owner: str | None = None) -> str:
     """Crée le dossier du traitement et y dépose les données (fichiers envoyés, ou copie d'un traitement précédent)."""
     job_id = datetime.now().strftime("%Y%m%d_%H%M%S")
     job_dir = JOBS_DIR / job_id
@@ -59,7 +60,7 @@ def create_job(files: list[tuple[str, bytes]] | None, name: str, model: str, inp
     if not any(p.suffix.lower() in DATA_EXTENSIONS for p in input_dir.rglob("*") if p.is_file()):
         shutil.rmtree(job_dir)
         raise ValueError("Aucun fichier de données reconnu (CSV, TSV, TXT, Excel, Parquet, JSON, ou un zip qui en contient).")
-    meta = {"id": job_id, "name": name or job_id, "model": model,
+    meta = {"id": job_id, "name": name or job_id, "model": model, "owner": owner,
             "created": datetime.now().isoformat(timespec="seconds"), "from_job": input_from}
     (job_dir / "job.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
     return job_id
@@ -133,11 +134,13 @@ def delete(job_id: str) -> bool:
     return not job_dir.exists()
 
 
-def list_jobs() -> list[dict]:
+def list_jobs(owner: str | None = None) -> list[dict]:
+    """Analyses, des plus récentes aux plus anciennes. owner : seulement celles de cet utilisateur
+    (les analyses lancées avant la création des comptes, sans propriétaire, restent visibles par tous)."""
     jobs = []
     for d in sorted(JOBS_DIR.glob("*"), reverse=True):
         meta = _read_json(d / "job.json")
-        if meta:
+        if meta and (owner is None or meta.get("owner") in (None, owner)):
             jobs.append({**meta, "status": status(meta["id"])})
     return jobs
 

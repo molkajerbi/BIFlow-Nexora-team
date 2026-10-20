@@ -14,4 +14,17 @@ biflow_cache/
 # Fichiers système et éditeur
 .ipynb_checkpoints/
 .DS_Store
-Thumbs.db
+Thumbs.dbtest_terminal/
+biflow_runs/
+
+# Comptes utilisateurs (base locale) et application web (dépendances et compilation)
+*.sqlite3
+web/node_modules/
+web/.next/
+
+# Réglages privés (mot de passe d'application pour les e-mails) : jamais sur GitHub
+.env
+biflow_accounts.sqlite3
+test_terminal/
+node_modules/
+.next/
