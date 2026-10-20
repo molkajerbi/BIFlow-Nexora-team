@@ -1,4 +1,4 @@
-"""BIFlow — interface web de la Data Preparation Agent.
+"""BIFlow — interface web : préparation des données, KPI, analyse, tableau de bord et explications.
 
 Lancement :  streamlit run app.py   (puis ouvrir http://localhost:8501)
 """
@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 from biflow import jobs
 from biflow import ui
@@ -86,9 +87,10 @@ def page_new() -> None:
             return
         jobs.launch(job_id)
         go("job", job_id)
-    md(ui.section("Ce qui va se passer", "Cinq étapes s'enchaînent automatiquement. Vous suivez l'avancement "
-                  "et découvrez le travail de chaque agent dès qu'il a terminé."))
-    md(ui.chain(["todo"] * 5))
+    md(ui.section("Ce qui va se passer", "Sept étapes s'enchaînent automatiquement, sans aucune intervention. Vous suivez "
+                  "l'avancement et découvrez le travail de chaque agent dès qu'il a terminé. À la fin, l'assistant (bouton "
+                  "rond en bas à droite) répond à toutes vos questions sur l'analyse."))
+    md(ui.chain(["todo"] * len(ui.STATIONS)))
 
 
 # ================================================================ PAGE : MES ANALYSES
@@ -150,7 +152,7 @@ def load_result(job_id: str) -> tuple[dict, int, str]:
         res = partial
     elif res.get("status") != "success" and partial:
         res = {**partial, **{k: v for k, v in res.items() if v is not None}}   # arrêt : on garde ce qui était déjà prêt
-    completed = 6 if status in ("success",) else int(prog.get("completed_step") or res.get("completed_step") or 0)
+    completed = 13 if status in ("success",) else int(prog.get("completed_step") or res.get("completed_step") or 0)
     return res, completed, status
 
 
@@ -170,6 +172,9 @@ def page_job(job_id: str) -> None:
         pct = int(jobs.progress(job_id).get("percent") or (100 if s != "running" else 0))
         md(ui.progress_chip(pct, s))
         md(ui.chain(ui.station_states(done, s)))
+        if s == "running":
+            p = jobs.progress(job_id)
+            md(ui.now_line(p.get("cell"), p.get("elapsed_s")))
         seen = st.session_state.get(f"seen_{job_id}")
         if seen is not None and seen != (done, s):
             st.session_state[f"seen_{job_id}"] = (done, s)
@@ -196,7 +201,8 @@ def page_job(job_id: str) -> None:
     else:
         live()
 
-    tabs = st.tabs(["Vue d'ensemble", "1  Compréhension", "2  Diagnostic", "3  Nettoyage", "4  Modélisation"])
+    tabs = st.tabs(["Vue d'ensemble", "1  Compréhension", "2  Diagnostic", "3  Nettoyage", "4  Modélisation",
+                    "5  Indicateurs", "6  Analyse", "7  Tableau de bord"])
     with tabs[0]:
         tab_overview(job_id, meta, res, completed, status)
     with tabs[1]:
@@ -219,42 +225,77 @@ def page_job(job_id: str) -> None:
             tab_model(job_id, res)
         else:
             pending("La modélisation")
+    with tabs[5]:
+        if completed >= 8 and jobs.table(job_id, "kpi_catalog") is not None:
+            tab_kpis(job_id, res)
+        else:
+            pending("Les indicateurs (KPI)", status, completed)
+    with tabs[6]:
+        if completed >= 9 and (res.get("bi") or {}).get("insights") is not None:
+            tab_analysis(job_id, res)
+        else:
+            pending("L'analyse", status, completed)
+    with tabs[7]:
+        if completed >= 10 and (res.get("bi") or {}).get("dashboard"):
+            tab_dashboard(job_id, res)
+        else:
+            pending("Le tableau de bord", status, completed)
 
     if running and not hasattr(st, "fragment"):      # anciennes versions de Streamlit : rafraîchissement complet
         time.sleep(3)
         st.rerun()
 
 
-def pending(what: str) -> None:
-    md(ui.empty(f"{what} s'affichera ici", "Les résultats apparaissent automatiquement dès que l'agent a terminé."))
+def pending(what: str, status: str = "running", completed: int = 0) -> None:
+    if status in ("running", "success") or not status:
+        md(ui.empty(f"{what} s'affichera ici", "Les résultats apparaissent automatiquement dès que l'agent a terminé."))
+    elif status == "blocked" or completed < 6:
+        md(ui.empty(f"{what} : non disponible", "Cette étape demande des données préparées sans problème critique."))
+    else:
+        md(ui.empty(f"{what} : non disponible", "L'analyse s'est arrêtée avant cette étape (voir la vue d'ensemble)."))
 
 
 def relaunch(job_id: str, meta: dict) -> None:
     """Relance une analyse (100 % automatique) en repartant des mêmes fichiers."""
-    for old in ("result.json", "decision.json"):
+    import shutil
+    for old in ("result.json", "decision.json", "progress.json"):
         (jobs.JOBS_DIR / job_id / old).unlink(missing_ok=True)
+    for folder in ("results", "chat"):                # résultats et conversation de l'analyse précédente
+        shutil.rmtree(jobs.JOBS_DIR / job_id / folder, ignore_errors=True)
     jobs.launch(job_id)
 
 
 # ---------------------------------------------------------------- vue d'ensemble
 def tab_overview(job_id: str, meta: dict, res: dict, completed: int, status: str) -> None:
+    bi = res.get("bi") or {}
     if status == "running":
         md(ui.banner("Analyse en cours", "Chaque étape publie ses résultats dans son onglet dès qu'elle est terminée. "
                      "Vous pouvez fermer cette page : l'analyse continue sur votre ordinateur.", "info", icon_name="clock"))
     elif status == "success":
-        md(ui.banner("Vos données sont prêtes", "Le modèle en étoile est construit et tous les contrôles sont passés.", "ok"))
+        md(ui.banner("Votre analyse est prête", "Données préparées, indicateurs calculés et vérifiés, tableau de bord généré. "
+                     "L'assistant (bouton rond en bas à droite) répond à vos questions sur chaque décision.", "ok"))
     elif status == "blocked":
         md(ui.banner("Analyse arrêtée par sécurité", "Un problème critique dans les données empêche de construire un "
-                     "modèle fiable. Consultez l'onglet Nettoyage.", "crit"))
+                     "modèle fiable. Consultez l'onglet Nettoyage, ou demandez pourquoi à l'assistant (bouton en bas à droite).", "crit"))
+    elif bi.get("error") and completed >= 6:
+        md(ui.banner("Vos données sont prêtes, mais l'analyse BI s'est arrêtée",
+                     "La préparation est terminée et téléchargeable. L'étape des indicateurs ou de l'analyse n'a pas pu "
+                     "aller au bout : si le moteur d'IA a été fermé, rouvrez Ollama puis relancez l'analyse.", "warn"))
+        if st.button("Relancer l'analyse", type="primary"):
+            relaunch(job_id, meta)
+            st.rerun()
+        with st.expander("Détail pour l'équipe technique"):
+            st.code(bi["error"], language=None)
     else:
         md(ui.banner("L'analyse s'est arrêtée avant la fin", "L'ordinateur s'est peut-être mis en veille, ou le moteur "
                      "d'IA a été fermé. Vérifiez qu'Ollama est ouvert, puis relancez l'analyse.", "crit"))
         if st.button("Relancer l'analyse", type="primary"):
             relaunch(job_id, meta)
             st.rerun()
-        if res.get("error"):
-            with st.expander("Détail pour l'équipe technique"):
+        with st.expander("Détail pour l'équipe technique (fin du journal d'exécution)"):
+            if res.get("error"):
                 st.code(res["error"], language=None)
+            st.code(jobs.log_tail(job_id, 40) or "journal vide", language=None)
 
     inp = res.get("input") or {}
     q = res.get("quality") or {}
@@ -269,6 +310,16 @@ def tab_overview(job_id: str, meta: dict, res: dict, completed: int, status: str
             n_facts = sum(t["type"] == "fait" for t in star.values())
             items.append(("Modèle en étoile", f"{n_facts} + {len(star) - n_facts}", "tables de faits + axes d'analyse"))
         md(ui.kpis(items))
+        if completed >= 8 and bi.get("kpis") is not None:
+            items = [("Métier reconnu", sector_text(bi), "KPI de référence adaptés", "accent"),
+                     ("KPI calculés", ui.fmt_int(bi.get("kpis")), f"dont {ui.plural(bi.get('validated'), 'validé')}")]
+            if bi.get("insights") is not None:
+                items.append(("Constats publiés", ui.fmt_int(bi.get("insights")),
+                              f"{ui.plural(bi.get('signals'), 'signal détecté', 'signaux détectés')}"))
+            xai = res.get("xai") or {}
+            if xai.get("ready"):
+                items.append(("Décisions expliquables", ui.fmt_int(xai.get("decisions")), "demandez « pourquoi ? » à l'assistant"))
+            md(ui.kpis(items))
 
     if completed >= 1:
         md(ui.section("Ce que chaque agent a fait", "Ouvrez l'onglet correspondant pour voir le détail."))
@@ -283,21 +334,30 @@ def tab_overview(job_id: str, meta: dict, res: dict, completed: int, status: str
         md(ui.banner("Corrections mises de côté par prudence",
                      text + " Les problèmes concernés restent signalés dans l'onglet 3 Nettoyage.", "warn"))
 
-    if status == "success":
-        md(ui.section("Télécharger", "Le modèle en étoile (base de données et tables), les données nettoyées et les rapports "
-                      "de chaque agent."))
-        c = st.columns(2)
+    if status != "running" and completed >= 6:
+        md(ui.section("Télécharger", "Tous les livrables (modèle en étoile, données nettoyées, KPI, analyse, tableau de bord, "
+                      "registre des décisions), la base de données seule ou le tableau de bord seul."))
+        c = st.columns(3)
         zip_path = jobs.JOBS_DIR / job_id / "biflow_outputs.zip"
         if zip_path.exists():
-            c[0].download_button("Télécharger toutes les données préparées (.zip)", zip_path.read_bytes(),
-                                 file_name=f"biflow_{job_id}.zip", mime="application/zip", type="primary",
-                                 **WIDE)
+            c[0].download_button("Tous les livrables (.zip)", zip_path.read_bytes(),
+                                 file_name=f"biflow_{job_id}.zip", mime="application/zip", type="primary", **WIDE)
         out_dir = res.get("output_dir")
         for wh in (Path(out_dir).glob("biflow_star.*") if out_dir else []):
-            c[1].download_button(f"Base de données du modèle en étoile ({wh.stat().st_size / 1e6:.1f} Mo)", wh.read_bytes(),
+            c[1].download_button(f"Base du modèle en étoile ({wh.stat().st_size / 1e6:.1f} Mo)", wh.read_bytes(),
                                  file_name=wh.name, **WIDE,
                                  help="Un seul fichier qui contient toutes les tables du modèle en étoile, prêt à être "
                                       "interrogé en SQL ou ouvert dans un outil de BI.")
+        dash = jobs.dashboard_html(job_id)
+        if dash:
+            c[2].download_button("Tableau de bord (.html)", dash.encode("utf-8"), file_name=f"dashboard_{job_id}.html",
+                                 mime="text/html", **WIDE, help="Fichier autonome : il s'ouvre dans n'importe quel navigateur, "
+                                                                "même sans connexion.")
+
+
+def sector_text(bi: dict) -> str:
+    sectors = bi.get("sectors") or []
+    return ", ".join(ui.SECTOR.get(s, s) for s in sectors) if sectors else "Générique"
 
 
 def agent_summary(job_id: str, res: dict, completed: int, status: str, star: dict) -> list[tuple]:
@@ -308,7 +368,14 @@ def agent_summary(job_id: str, res: dict, completed: int, status: str, star: dic
     scores = jobs.table(job_id, "quality_scores")
     tests = jobs.table(job_id, "etl_tests")
     q = res.get("quality") or {}
+    bi = res.get("bi") or {}
+    xai = res.get("xai") or {}
     waiting = "en attente de l'étape précédente"
+
+    def todo(n: int, name: str, after: int) -> tuple:
+        busy = status == "running" and completed >= after
+        return n, name, "en cours…" if busy else "—", waiting if status == "running" else "non exécuté", "todo"
+
     items = [(1, "Compréhension", f"{ui.fmt_int(inp.get('tables'))} tables reconnues",
               f"{ui.fmt_int(inp.get('rows'))} lignes lues, "
               f"{ui.plural(0 if rels is None else len(rels), 'lien détecté', 'liens détectés')}", "done")]
@@ -317,21 +384,36 @@ def agent_summary(job_id: str, res: dict, completed: int, status: str, star: dic
         items.append((2, "Diagnostic", ui.plural(len(report), "point relevé", "points relevés"),
                       f"dont {ui.plural(crit, 'critique', 'critiques')}, chacun expliqué en français", "done"))
     else:
-        items.append((2, "Diagnostic", "en cours…" if status == "running" else "—", waiting, "todo"))
+        items.append(todo(2, "Diagnostic", 1))
     if completed >= 4 and scores is not None and "corrections_applied" in q:
         sc = scores.rename(columns={scores.columns[0]: "dimension"})
         items.append((3, "Nettoyage", f"Qualité {sc['avant'].mean():.1f} → {sc['après'].mean():.1f} / 100",
                       f"{ui.plural(q.get('corrections_applied'), 'correction appliquée', 'corrections appliquées')}, "
                       "chacune tracée", "done"))
     else:
-        items.append((3, "Nettoyage", "en cours…" if status == "running" and completed >= 3 else "—", waiting, "todo"))
+        items.append(todo(3, "Nettoyage", 3))
     if completed >= 5 and star:
         n_facts = sum(t["type"] == "fait" for t in star.values())
         ok = int(tests["OK"].astype(str).eq("True").sum()) if tests is not None else 0
         items.append((4, "Modélisation", f"{n_facts} tables de faits, {len(star) - n_facts} axes",
                       f"{ok} / {0 if tests is None else len(tests)} tables validées par les contrôles", "done"))
     else:
-        items.append((4, "Modélisation", "en cours…" if status == "running" and completed >= 4 else "—", waiting, "todo"))
+        items.append(todo(4, "Modélisation", 4))
+    if completed >= 8 and bi.get("kpis") is not None:
+        items.append((5, "Indicateurs", f"{ui.plural(bi.get('kpis'), 'KPI calculé', 'KPI calculés')}",
+                      f"métier : {sector_text(bi).lower()} · chaque valeur calculée deux fois", "done"))
+    else:
+        items.append(todo(5, "Indicateurs", 6))
+    if completed >= 9 and bi.get("insights") is not None:
+        items.append((6, "Analyse", ui.plural(bi.get("insights"), "constat publié", "constats publiés"),
+                      f"{ui.plural(bi.get('series'), 'série mensuelle analysée', 'séries mensuelles analysées')}, "
+                      "chiffres vérifiés", "done"))
+    else:
+        items.append(todo(6, "Analyse", 8))
+    if completed >= 10 and bi.get("dashboard"):
+        items.append((7, "Tableau de bord", "Tableau de bord prêt", bi.get("dashboard_title") or "", "done"))
+    else:
+        items.append(todo(7, "Tableau de bord", 9))
     return items
 
 
@@ -557,6 +639,207 @@ def tab_model(job_id: str, res: dict) -> None:
             st.dataframe(df, hide_index=True, **WIDE)
 
 
+# ---------------------------------------------------------------- 5. indicateurs (KPI)
+def tab_kpis(job_id: str, res: dict) -> None:
+    bi = res.get("bi") or {}
+    cat = jobs.table(job_id, "kpi_catalog")
+    md(ui.section("Les indicateurs clés de votre activité",
+                  "L'agent reconnaît votre métier, retrouve dans sa base de connaissances les KPI de référence de ce métier, "
+                  "relie chacun aux bonnes colonnes, puis le calcule deux fois (une requête SQL et un second calcul "
+                  "indépendant). Un KPI n'est gardé que si les deux calculs donnent le même résultat et que sa valeur est "
+                  "plausible."))
+    dropped, failed = bi.get("dropped") or {}, bi.get("failed") or {}
+    md(ui.kpis([("Métier reconnu", sector_text(bi), "choisi par l'IA, vérifié par le code" if bi.get("sector_source") == "LLM"
+                 else "choisi par la règle de secours", "accent"),
+                ("KPI retenus", ui.fmt_int(bi.get("kpis")), f"{ui.plural(bi.get('validated'), 'validé')} · "
+                                                            f"{bi.get('to_confirm') or 0} à confirmer"),
+                ("Proposés par l'IA", ui.fmt_int(bi.get("proposed") or 0), "en plus de la base de connaissances"),
+                ("Écartés", ui.fmt_int(len(dropped) + len(failed)), "sans objet ici, ou test échoué")]))
+    if bi.get("sector_reason"):
+        md(ui.banner("Pourquoi ce métier ?", ui.human_text(bi["sector_reason"]) or bi["sector_reason"], "info"))
+    if cat is None or not len(cat):
+        md(ui.empty("Aucun KPI calculable", "Les colonnes de vos données ne permettent de calculer aucun indicateur fiable."))
+        return
+    md(ui.section("Le catalogue de KPI", "« Validé » : colonnes évidentes ou choisies par l'IA, tous les tests réussis. "
+                  "« À confirmer » : KPI proposé par l'IA ou liaison de secours ; à relire avant de le diffuser."))
+    reasons = bi.get("binding_reasons") or {}
+    items = []
+    for k in cat.to_dict(orient="records"):
+        how = ui.binding_label(k.get("binding"))
+        why = ui.human_text(reasons.get(k["id"]))
+        items.append(ui.kpi_card(k["name"], k["valeur"], k["status"], k.get("definition") or "", k.get("formula") or "",
+                                 how + (f" (« {why} »)" if why else ""), k.get("reliability")))
+    md(ui.cards(items))
+    with st.expander("Voir la requête SQL de chaque KPI"):
+        choice = st.selectbox("KPI", cat["name"].tolist(), key=f"sql_{job_id}")
+        st.code(cat.loc[cat["name"] == choice, "sql"].iloc[0], language="sql")
+    if dropped or failed:
+        with st.expander("KPI écartés, et pourquoi"):
+            rows = [{"KPI": k, "Raison": r} for k, r in dropped.items()] + \
+                   [{"KPI": k, "Raison": f"test non réussi : {r}"} for k, r in failed.items()]
+            st.dataframe(pd.DataFrame(rows), hide_index=True, **WIDE)
+
+
+# ---------------------------------------------------------------- 6. analyse
+def tab_analysis(job_id: str, res: dict) -> None:
+    bi = res.get("bi") or {}
+    insights = jobs.insights(job_id)
+    facts = jobs.table(job_id, "analysis_facts")
+    md(ui.section("Ce que l'analyse a découvert",
+                  "Chaque KPI suivi mois par mois passe par cinq tests statistiques : tendance, variation récente, comparaison "
+                  "sur un an, mois atypique, changement de niveau. Les signaux retenus sont ensuite découpés par segment pour "
+                  "trouver où se situe le changement. L'IA rédige les constats ; le code revérifie chaque chiffre avant de "
+                  "les publier."))
+    period = next((p for p in (bi.get("reliable_periods") or {}).values() if p), None)
+    inv = bi.get("investigations") or []
+    md(ui.kpis([("Constats publiés", ui.fmt_int(len(insights)), f"dont {bi.get('insights_llm') or 0} rédigés par l'IA", "accent"),
+                ("Séries analysées", ui.fmt_int(bi.get("series")), f"de {period[0] % 100:02d}/{period[0] // 100} à "
+                                                                   f"{period[1] % 100:02d}/{period[1] // 100}" if period
+                 else "aucune date exploitable"),
+                ("Signaux détectés", ui.fmt_int(bi.get("signals")), "par les tests statistiques"),
+                ("Pistes creusées", ui.fmt_int(len(inv)), "choisies par l'IA" if any(i.get("source") == "LLM" for i in inv)
+                 else "choisies par le code")]))
+    if insights:
+        md(ui.section("Les constats", "Du plus important au moins important. Les sources (F…) renvoient aux faits mesurés."))
+        md(ui.cards([ui.insight_card(i["titre"], i["texte"], i["recommandation"], i.get("type"), i.get("faits") or [],
+                                     i.get("source")) for i in insights]))
+    else:
+        md(ui.empty("Aucun signal marquant", "Les séries sont trop courtes ou stables : aucun changement net n'a été détecté."))
+    if inv:
+        md(ui.section("Les pistes creusées", "Pour expliquer un signal, l'agent choisit l'axe de découpage le plus parlant."))
+        md(ui.cards([f'<div class="bf-card"><div class="row"><h4>Signal {ui.esc(i["fait"])} découpé par '
+                     f'« {ui.esc(i["axe"])} »</h4>{ui.badge("IA" if i.get("source") == "LLM" else "code", "info")}</div>'
+                     f'<p>{ui.esc(ui.human_text(i["pourquoi"]) or "Axe le plus discriminant pour ce signal.")}</p>'
+                     f'<div class="meta">{"Nouveau fait : " + ui.esc(i["résultat"]) if i.get("résultat") else "Rien de significatif"}'
+                     f'</div></div>' for i in inv]))
+    if facts is not None and len(facts):
+        with st.expander("Voir tous les faits mesurés"):
+            view = facts[facts["type"] != "valeur"] if (facts["type"] != "valeur").any() else facts
+            st.dataframe(pd.DataFrame({"Fait": view["id"], "Type": view["type"].map(lambda t: ui.FACT_TYPE.get(t, t)),
+                                       "Constat": view["texte"], "Lecture": view["valence"]}), hide_index=True, **WIDE)
+
+
+# ---------------------------------------------------------------- 7. tableau de bord
+def tab_dashboard(job_id: str, res: dict) -> None:
+    html = jobs.dashboard_html(job_id)
+    md(ui.section("Votre tableau de bord", "Généré automatiquement : le chiffre principal, les indicateurs clés, leur "
+                  "évolution mois par mois, les constats et les découpages. Chaque valeur vient du catalogue de KPI. "
+                  "Le fichier fonctionne aussi hors ligne : téléchargez-le et ouvrez-le dans votre navigateur."))
+    if not html:
+        md(ui.empty("Tableau de bord introuvable", "Le fichier a peut-être été déplacé ou supprimé."))
+        return
+    st.download_button("Télécharger le tableau de bord (.html)", html.encode("utf-8"), file_name=f"dashboard_{job_id}.html",
+                       mime="text/html", type="primary")
+    if hasattr(st, "iframe"):                          # Streamlit récent
+        st.iframe(html, height=1600)
+    else:                                              # anciennes versions
+        components.html(html, height=1600, scrolling=True)
+
+
+# ---------------------------------------------------------------- 8. explications (agent XAI)
+@st.cache_resource(show_spinner=False, max_entries=4)
+def chat_session(job_id: str, finished_at: str):
+    """Agent XAI de l'analyse, reconstruit une seule fois (code du notebook + registre exporté par le run)."""
+    from biflow.llm import OllamaLLM
+    from biflow.xai_chat import XAISession
+    llm = OllamaLLM(model_id=jobs.meta(job_id).get("model"), url=OLLAMA_URL, cache_dir=jobs.ROOT / "biflow_cache")
+    return XAISession(jobs.JOBS_DIR / job_id, llm=llm)
+
+
+def chat_jobs() -> list[dict]:
+    """Analyses terminées dont l'explicabilité est construite (l'assistant peut en parler)."""
+    return [j for j in jobs.list_jobs() if j["status"] != "running"
+            and ((jobs.result(j["id"]) or {}).get("xai") or {}).get("ready")]
+
+
+def chat_widget() -> None:
+    """Assistant BIFlow : bouton rond dans le coin, qui ouvre une fenêtre de discussion juste au-dessus.
+    Il répond à toute question sur l'analyse (données, nettoyage, KPI, constats, tableau de bord) et sur la façon dont
+    le code décide, à partir du registre des décisions et des règles lues dans le code (agent XAI du notebook)."""
+    st.session_state.setdefault("chat_open", False)
+    try:
+        fab = st.container(key="bf_chat_fab")
+    except TypeError:                                  # Streamlit trop ancien pour placer le bouton dans le coin
+        fab = st.container()
+    if fab.button("✕" if st.session_state.chat_open else "💬", key="bf_chat_toggle",
+                  help="Fermer l'assistant" if st.session_state.chat_open else "Poser une question à l'assistant BIFlow"):
+        st.session_state.chat_open = not st.session_state.chat_open
+        st.rerun()
+    if not st.session_state.chat_open:
+        return
+    try:
+        panel = st.container(key="bf_chat_panel")
+    except TypeError:
+        panel = st.container()
+    with panel:
+        chat_panel()
+
+
+def chat_panel() -> None:
+    choices = chat_jobs()
+    current = st.session_state.get("job") if st.session_state.get("view") == "job" else None
+    if not choices:
+        md(ui.chat_header("Assistant BIFlow", "Disponible dès qu'une analyse est terminée"))
+        running = current and jobs.status(current) == "running"
+        md(ui.chat_note("Votre analyse est en cours. Dès qu'elle sera terminée, je pourrai répondre à toutes vos "
+                        "questions : pourquoi telle correction, tel KPI, telle alerte…" if running else
+                        "Lancez une première analyse : je pourrai ensuite répondre à toutes vos questions sur ce qu'ont "
+                        "fait les agents, et pourquoi."))
+        return
+    ids = [j["id"] for j in choices]
+    names = {j["id"]: j["name"] for j in choices}
+    job_id = st.session_state.get("chat_job")
+    if job_id not in ids:
+        job_id = current if current in ids else ids[0]
+    md(ui.chat_header("Assistant BIFlow", f"Analyse « {names[job_id]} »"))
+    if len(ids) > 1:
+        job_id = st.selectbox("Analyse", ids, index=ids.index(job_id), format_func=names.get, key="chat_job",
+                              label_visibility="collapsed")
+    res = jobs.result(job_id) or {}
+    try:
+        with st.spinner("Préparation de l'assistant…"):
+            session = chat_session(job_id, str(res.get("finished_at")))
+    except Exception as exc:
+        md(ui.chat_note(f"L'assistant n'a pas pu démarrer : {exc}"))
+        return
+    box = st.container(height=390, border=False)
+    question = st.chat_input("Posez votre question…", key="chat_input")
+    row = st.columns([3, 1.2], vertical_alignment="center")
+    toggle = getattr(st, "toggle", st.checkbox)
+    with row[0]:
+        use_llm = toggle("Reformuler avec l'IA", value=True, key="chat_llm",
+                         help="Activé : réponse plus naturelle, chaque chiffre vérifié par le code (quelques secondes "
+                              "de plus). Désactivé : réponse immédiate construite par les règles.")
+    if session.history and row[1].button("Effacer", key="chat_clear", type="tertiary" if _V >= (1, 41) else "secondary"):
+        session.clear()
+        st.rerun()
+    with box:
+        if not session.history and not question:
+            md(ui.chat_note("Bonjour ! Je connais chaque décision prise pendant cette analyse et les règles du code qui "
+                            "les ont produites. Demandez-moi pourquoi, comment, qui a décidé, ou « et si… ? »"))
+            demo = [q for q in (res.get("xai") or {}).get("demo_questions") or [] if q][:5]
+            for i, q in enumerate(demo):
+                if st.button(q, key=f"chat_demo_{i}", **WIDE):
+                    question = q
+        for turn in session.history:
+            md(ui.chat_bubble(turn["question"]))
+            show_answer(turn)
+        if question:
+            md(ui.chat_bubble(question))
+            with st.spinner("Je retrouve la décision et je prépare l'explication…"):
+                turn = session.ask(question, use_llm=use_llm)
+            show_answer(turn)
+
+
+def show_answer(turn: dict) -> None:
+    with st.chat_message("assistant", avatar="✨"):
+        st.markdown(turn["réponse"])
+        mode = ("Reformulé par l'IA · chiffres vérifiés par le code" if turn.get("mode") == "LLM (vérifié)"
+                else "Réponse des règles du système")
+        refused = " · reformulation refusée par le code" if turn.get("refus_llm") else ""
+        st.caption(f"{mode}{refused} · sources : {', '.join(turn.get('sources') or []) or '—'}")
+
+
 # ---------------------------------------------------------------- routage
 view = st.session_state.view
 if view == "job" and st.session_state.get("job"):
@@ -566,3 +849,4 @@ elif view == "history":
 else:
     page_new()
 md(ui.footer())
+chat_widget()

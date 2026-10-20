@@ -16,7 +16,7 @@ DATA_PREP_GRAPH = builder.compile()
 MERMAID = DATA_PREP_GRAPH.get_graph().draw_mermaid()
 (RUN_DIR / "data_preparation_graph.mmd").write_text(MERMAID, encoding="utf-8")
 try:                                                        # image du graphe (nécessite Internet)
-    from IPython.display import Image
+    raise ImportError("aperçu du graphe désactivé en déploiement")
     display(Image(DATA_PREP_GRAPH.get_graph().draw_mermaid_png()))
 except Exception:
     print(MERMAID)

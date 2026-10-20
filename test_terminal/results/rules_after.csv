@@ -1,0 +1,45 @@
+rule,table,dimension,severity,description,rows_checked,violations
+UNQ_sample_superstore,sample_superstore,unicité,blocking,grain Row ID unique,9994,0
+NUL_sample_superstore.Row ID,sample_superstore,complétude,warning,"Row ID sans valeur vide déguisée (NA, null, -…)",9994,0
+NUL_sample_superstore.Order ID,sample_superstore,complétude,warning,"Order ID sans valeur vide déguisée (NA, null, -…)",9994,0
+FMT_sample_superstore.Ship Mode,sample_superstore,format,warning,Ship Mode sans espaces parasites,9994,0
+NUL_sample_superstore.Ship Mode,sample_superstore,complétude,warning,"Ship Mode sans valeur vide déguisée (NA, null, -…)",9994,0
+CAS_sample_superstore.Ship Mode,sample_superstore,format,warning,Ship Mode : une seule écriture par catégorie,9994,0
+NUL_sample_superstore.Customer ID,sample_superstore,complétude,warning,"Customer ID sans valeur vide déguisée (NA, null, -…)",9994,0
+FMT_sample_superstore.Customer Name,sample_superstore,format,warning,Customer Name sans espaces parasites,9994,0
+NUL_sample_superstore.Customer Name,sample_superstore,complétude,warning,"Customer Name sans valeur vide déguisée (NA, null, -…)",9994,0
+CAS_sample_superstore.Customer Name,sample_superstore,format,warning,Customer Name : une seule écriture par catégorie,9994,0
+FMT_sample_superstore.Segment,sample_superstore,format,warning,Segment sans espaces parasites,9994,0
+NUL_sample_superstore.Segment,sample_superstore,complétude,warning,"Segment sans valeur vide déguisée (NA, null, -…)",9994,0
+CAS_sample_superstore.Segment,sample_superstore,format,warning,Segment : une seule écriture par catégorie,9994,0
+FMT_sample_superstore.Country,sample_superstore,format,warning,Country sans espaces parasites,9994,0
+NUL_sample_superstore.Country,sample_superstore,complétude,warning,"Country sans valeur vide déguisée (NA, null, -…)",9994,0
+CAS_sample_superstore.Country,sample_superstore,format,warning,Country : une seule écriture par catégorie,9994,0
+FMT_sample_superstore.City,sample_superstore,format,warning,City sans espaces parasites,9994,0
+NUL_sample_superstore.City,sample_superstore,complétude,warning,"City sans valeur vide déguisée (NA, null, -…)",9994,0
+CAS_sample_superstore.City,sample_superstore,format,warning,City : une seule écriture par catégorie,9994,0
+FMT_sample_superstore.State,sample_superstore,format,warning,State sans espaces parasites,9994,0
+NUL_sample_superstore.State,sample_superstore,complétude,warning,"State sans valeur vide déguisée (NA, null, -…)",9994,0
+CAS_sample_superstore.State,sample_superstore,format,warning,State : une seule écriture par catégorie,9994,0
+NUL_sample_superstore.Postal Code,sample_superstore,complétude,warning,"Postal Code sans valeur vide déguisée (NA, null, -…)",9994,0
+FMT_sample_superstore.Region,sample_superstore,format,warning,Region sans espaces parasites,9994,0
+NUL_sample_superstore.Region,sample_superstore,complétude,warning,"Region sans valeur vide déguisée (NA, null, -…)",9994,0
+CAS_sample_superstore.Region,sample_superstore,format,warning,Region : une seule écriture par catégorie,9994,0
+NUL_sample_superstore.Product ID,sample_superstore,complétude,warning,"Product ID sans valeur vide déguisée (NA, null, -…)",9994,0
+FMT_sample_superstore.Category,sample_superstore,format,warning,Category sans espaces parasites,9994,0
+NUL_sample_superstore.Category,sample_superstore,complétude,warning,"Category sans valeur vide déguisée (NA, null, -…)",9994,0
+CAS_sample_superstore.Category,sample_superstore,format,warning,Category : une seule écriture par catégorie,9994,0
+FMT_sample_superstore.Sub-Category,sample_superstore,format,warning,Sub-Category sans espaces parasites,9994,0
+NUL_sample_superstore.Sub-Category,sample_superstore,complétude,warning,"Sub-Category sans valeur vide déguisée (NA, null, -…)",9994,0
+CAS_sample_superstore.Sub-Category,sample_superstore,format,warning,Sub-Category : une seule écriture par catégorie,9994,0
+FMT_sample_superstore.Product Name,sample_superstore,format,warning,Product Name sans espaces parasites,9994,0
+NUL_sample_superstore.Product Name,sample_superstore,complétude,warning,"Product Name sans valeur vide déguisée (NA, null, -…)",9994,0
+CAS_sample_superstore.Product Name,sample_superstore,format,warning,Product Name : une seule écriture par catégorie,9994,0
+TYP_sample_superstore,sample_superstore,validité,warning,toutes les valeurs respectent leur type,9994,0
+BUS_date_range_sample_superstore.Order Date,sample_superstore,plausibilité,warning,Order Date entre 1900 et aujourd'hui + 1 an,9994,0
+BUS_date_range_sample_superstore.Ship Date,sample_superstore,plausibilité,warning,Ship Date entre 1900 et aujourd'hui + 1 an,9994,0
+BUS_non_negative_sample_superstore.Sales,sample_superstore,plausibilité,warning,Sales ≥ 0 (respecté par 100.00 % des lignes),9994,0
+BUS_non_negative_sample_superstore.Quantity,sample_superstore,plausibilité,warning,Quantity ≥ 0 (respecté par 100.00 % des lignes),9994,0
+BUS_non_negative_sample_superstore.Discount,sample_superstore,plausibilité,warning,Discount ≥ 0 (respecté par 100.00 % des lignes),9994,0
+BUS_date_order_sample_superstore.Order Date<=Ship Date,sample_superstore,cohérence,warning,Order Date ≤ Ship Date (respecté par 100.00 %),9994,0
+OUT_sample_superstore.Sales,sample_superstore,plausibilité,warning,Sales sans valeur extrême (limites calculées par Sub-Category),9994,0

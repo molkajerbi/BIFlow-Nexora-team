@@ -1,0 +1,31 @@
+table,table_kind,rows,column,semantic,origin,roles,is_grain,is_fk,non_null_pct,distinct,binary,min,max,mean,negatives,months,top_values
+dim_customer,dimension,793,Customer ID,id,source,"['transaction_id', 'entity_id']",True,True,100.0,793,False,,,,,,"{'TB-21520': 1, 'ES-14080': 1, 'TB-21055': 1, 'GZ-14470': 1, 'LC-16870': 1, 'JM-15250': 1, 'CL-12565': 1, 'TT-21070': 1}"
+dim_customer,dimension,793,Customer Name,category,source,[],False,False,100.0,793,False,,,,,,"{'Tracy Blumstein': 1, 'Erin Smith': 1, 'Ted Butterfield': 1, 'Gary Zandusky': 1, 'Lena Cacioppo': 1, 'Janet Martin': 1, 'Clay Ludtke': 1, 'Ted Trevino': 1}"
+dim_customer,dimension,793,Segment,category,source,['category'],False,False,100.0,3,False,,,,,,"{'Consumer': 409, 'Corporate': 236, 'Home Office': 148}"
+dim_customer,dimension,793,Country,category,source,[],False,False,100.0,1,False,,,,,,{'United States': 793}
+dim_product,dimension,1862,Product ID,id,source,"['transaction_id', 'entity_id']",True,True,100.0,1862,False,,,,,,"{'FUR-TA-10001539': 1, 'OFF-BI-10000756': 1, 'OFF-ST-10004186': 1, 'OFF-BI-10000474': 1, 'FUR-BO-10002545': 1, 'FUR-CH-10004218': 1, 'OFF-FA-10000304': 1, 'OFF-ST-10000604': 1}"
+dim_product,dimension,1862,Country,category,source,[],False,False,100.0,1,False,,,,,,{'United States': 1862}
+dim_product,dimension,1862,Category,category,source,['category'],False,False,100.0,3,False,,,,,,"{'Office Supplies': 1083, 'Technology': 404, 'Furniture': 375}"
+dim_product,dimension,1862,Sub-Category,category,source,['category'],False,False,100.0,17,False,,,,,,"{'Paper': 276, 'Binders': 210, 'Phones': 184, 'Furnishings': 182, 'Art': 163, 'Accessories': 144, 'Storage': 131, 'Appliances': 98}"
+fact_sample_superstore,fait,9994,Row ID,id,source,"['transaction_id', 'entity_id']",True,False,100.0,9994,False,,,,,,"{'1': 1, '2': 1, '3': 1, '4': 1, '5': 1, '6': 1, '7': 1, '8': 1}"
+fact_sample_superstore,fait,9994,Order ID,id,source,"['transaction_id', 'entity_id']",False,False,100.0,5009,False,,,,,,"{'CA-2017-100111': 14, 'CA-2017-157987': 12, 'CA-2016-165330': 11, 'US-2016-108504': 11, 'US-2015-126977': 10, 'CA-2016-105732': 10, 'CA-2015-131338': 10, 'CA-2015-158421': 9}"
+fact_sample_superstore,fait,9994,Order Date,datetime,source,['event_date'],False,False,100.0,1237,False,2014-01-03 00:00:00,2017-12-30 00:00:00,,,48.0,
+fact_sample_superstore,fait,9994,Ship Date,datetime,source,['event_date'],False,False,100.0,1334,False,2014-01-07 00:00:00,2018-01-05 00:00:00,,,49.0,
+fact_sample_superstore,fait,9994,Ship Mode,category,source,['category'],False,False,100.0,4,False,,,,,,"{'Standard Class': 5968, 'Second Class': 1945, 'First Class': 1538, 'Same Day': 543}"
+fact_sample_superstore,fait,9994,Customer ID,id,source,"['transaction_id', 'entity_id']",False,True,100.0,793,False,,,,,,"{'WB-21850': 37, 'MA-17560': 34, 'JL-15835': 34, 'PP-18955': 34, 'CK-12205': 32, 'JD-15895': 32, 'EH-13765': 32, 'SV-20365': 32}"
+fact_sample_superstore,fait,9994,Customer Name,category,source,[],False,False,100.0,793,False,,,,,,"{'William Brown': 37, 'Matt Abelman': 34, 'John Lee': 34, 'Paul Prost': 34, 'Chloris Kastensmidt': 32, 'Jonathan Doherty': 32, 'Edward Hooks': 32, 'Seth Vernon': 32}"
+fact_sample_superstore,fait,9994,Segment,category,source,['category'],False,False,100.0,3,False,,,,,,"{'Consumer': 5191, 'Corporate': 3020, 'Home Office': 1783}"
+fact_sample_superstore,fait,9994,Country,category,source,[],False,False,100.0,1,False,,,,,,{'United States': 9994}
+fact_sample_superstore,fait,9994,City,category,source,[],False,False,100.0,531,False,,,,,,"{'New York City': 915, 'Los Angeles': 747, 'Philadelphia': 537, 'San Francisco': 510, 'Seattle': 428, 'Houston': 377, 'Chicago': 314, 'Columbus': 222}"
+fact_sample_superstore,fait,9994,State,category,source,"['category', 'location']",False,False,100.0,49,False,,,,,,"{'California': 2001, 'New York': 1128, 'Texas': 985, 'Pennsylvania': 587, 'Washington': 506, 'Illinois': 492, 'Ohio': 469, 'Florida': 383}"
+fact_sample_superstore,fait,9994,Postal Code,zip,source,[],False,False,100.0,631,False,,,,,,"{'10035': 263, '10024': 230, '10009': 229, '94122': 203, '10011': 193, '94110': 166, '98105': 165, '19134': 160}"
+fact_sample_superstore,fait,9994,Region,category,source,"['category', 'location']",False,False,100.0,4,False,,,,,,"{'West': 3203, 'East': 2848, 'Central': 2323, 'South': 1620}"
+fact_sample_superstore,fait,9994,Product ID,id,source,"['transaction_id', 'entity_id']",False,True,100.0,1862,False,,,,,,"{'OFF-PA-10001970': 19, 'TEC-AC-10003832': 18, 'FUR-FU-10004270': 16, 'FUR-CH-10002647': 15, 'FUR-CH-10001146': 15, 'TEC-AC-10002049': 15, 'TEC-AC-10003628': 15, 'OFF-BI-10002026': 14}"
+fact_sample_superstore,fait,9994,Category,category,source,['category'],False,False,100.0,3,False,,,,,,"{'Office Supplies': 6026, 'Furniture': 2121, 'Technology': 1847}"
+fact_sample_superstore,fait,9994,Sub-Category,category,source,['category'],False,False,100.0,17,False,,,,,,"{'Binders': 1523, 'Paper': 1370, 'Furnishings': 957, 'Phones': 889, 'Storage': 846, 'Art': 796, 'Accessories': 775, 'Chairs': 617}"
+fact_sample_superstore,fait,9994,Product Name,category,source,[],False,False,100.0,1850,False,,,,,,"{'Staple envelope': 48, 'Staples': 46, 'Easy-staple paper': 46, 'Avery Non-Stick Binders': 20, 'Staples in misc. colors': 19, 'KI Adjustable-Height Table': 18, 'Staple remover': 18, 'Storex Dura Pro Binders': 17}"
+fact_sample_superstore,fait,9994,Sales,numeric,source,['amount'],False,False,100.0,5823,False,0.444,22638.48,229.4341,0.0,,
+fact_sample_superstore,fait,9994,Quantity,integer,source,['quantity'],False,False,100.0,14,False,1.0,14.0,3.7896,0.0,,
+fact_sample_superstore,fait,9994,Discount,numeric,source,['discount'],False,False,100.0,12,False,0.0,0.8,0.1562,0.0,,
+fact_sample_superstore,fait,9994,Profit,numeric,source,['profit'],False,False,100.0,7287,False,-6599.978,8399.976,28.6569,1871.0,,
+fact_sample_superstore,fait,9994,Order Date_to_Ship Date_days,numeric,indicateur dérivé : délai (jours),['duration'],False,False,100.0,8,False,0.0,7.0,3.9582,0.0,,

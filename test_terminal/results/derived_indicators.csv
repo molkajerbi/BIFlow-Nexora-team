@@ -1,0 +1,2 @@
+table,colonne,type,calcul
+sample_superstore,Order Date_to_Ship Date_days,délai (jours),Ship Date - Order Date

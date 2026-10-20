@@ -1,0 +1,8 @@
+id,table,colonne,dimension,constat,interpretation,action,severity,source
+F01,sample_superstore,Product Name,validité,16 valeur(s) non conforme(s) au type category,Les noms de produits ne sont pas catégorisés correctement.,standardiser,warning,LLM
+F02,sample_superstore,Product Name,format,16 valeur(s) avec espaces parasites,Il y a des espaces parasites dans les noms de produits.,standardiser,info,LLM
+F03,sample_superstore,Profit,plausibilité,1871 valeur(s) négative(s),"Profit contient des valeurs négatives, potentiellement erronées.",corriger_valeur,warning,LLM
+F04,sample_superstore,Discount,plausibilité,4798 valeur(s) à zéro,"Discount contient des valeurs à zéro, plausibles ou non.",conserver,info,LLM
+F05,sample_superstore,Profit,plausibilité,65 valeur(s) à zéro,"Profit contient des valeurs à zéro, plausibles ou non.",conserver,info,LLM
+F06,sample_superstore,Sales,plausibilité,668 valeur(s) extrême(s) (> 3 IQR),"Sales contient des valeurs extrêmes, potentiellement erronées.",plafonner,warning,LLM
+F07,sample_superstore,Profit,plausibilité,1168 valeur(s) extrême(s) (> 3 IQR),"Certaines profits sont excessivement élevés, potentiellement erronés.",plafonner,warning,LLM

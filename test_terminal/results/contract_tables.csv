@@ -1,0 +1,2 @@
+table,rôle,lignes,colonnes,grain,description
+sample_superstore,fait,9994,21,Row ID,"Enregistre les transactions de vente et les informations associées (9994 lignes, rôle : fait)"

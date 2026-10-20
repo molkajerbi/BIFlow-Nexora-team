@@ -1,7 +1,7 @@
 [
  {
   "n": 1,
-  "file": "01_1_1_configuration.py",
+  "file": "001_1_1_configuration.py",
   "title": "1.1 Configuration",
   "step": 1,
   "kind": "code",
@@ -9,7 +9,7 @@
  },
  {
   "n": 2,
-  "file": "02_1_2_journal_d_audit_inviolable.py",
+  "file": "002_1_2_journal_d_audit_inviolable.py",
   "title": "1.2 Journal d'audit inviolable",
   "step": 1,
   "kind": "code",
@@ -17,7 +17,7 @@
  },
  {
   "n": 3,
-  "file": "03_1_3_d_monstration_la_falsification_est_d.py",
+  "file": "003_1_3_d_monstration_la_falsification_est_d.py",
   "title": "1.3 Démonstration : la falsification est détectée",
   "step": 1,
   "kind": "code",
@@ -25,7 +25,7 @@
  },
  {
   "n": 4,
-  "file": "04_1_4_inf_rence_automatique_du_contrat_de_.py",
+  "file": "004_1_4_inf_rence_automatique_du_contrat_de_.py",
   "title": "1.4 Inférence automatique du contrat de données",
   "step": 1,
   "kind": "code",
@@ -33,7 +33,7 @@
  },
  {
   "n": 5,
-  "file": "05_1_5_contrat_actif_et_score_de_confiance.py",
+  "file": "005_1_5_contrat_actif_et_score_de_confiance.py",
   "title": "1.5 Contrat actif et score de confiance",
   "step": 1,
   "kind": "code",
@@ -41,7 +41,7 @@
  },
  {
   "n": 6,
-  "file": "06_1_6_ingestion_tra_able_zone_bronze.py",
+  "file": "006_1_6_ingestion_tra_able_zone_bronze.py",
   "title": "1.6 Ingestion traçable (zone bronze)",
   "step": 1,
   "kind": "code",
@@ -49,7 +49,7 @@
  },
  {
   "n": 7,
-  "file": "07_1_7_aper_u_et_point_de_contr_le_de_l_tap.py",
+  "file": "007_1_7_aper_u_et_point_de_contr_le_de_l_tap.py",
   "title": "1.7 Aperçu et point de contrôle de l'étape 1",
   "step": 1,
   "kind": "code",
@@ -57,7 +57,7 @@
  },
  {
   "n": 8,
-  "file": "08_1_7_aper_u_et_point_de_contr_le_de_l_tap.py",
+  "file": "008_1_7_aper_u_et_point_de_contr_le_de_l_tap.py",
   "title": "1.7 Aperçu et point de contrôle de l'étape 1",
   "step": 1,
   "kind": "code",
@@ -65,7 +65,7 @@
  },
  {
   "n": 9,
-  "file": "09_1_8_journal_d_audit_de_l_tape_1.py",
+  "file": "009_1_8_journal_d_audit_de_l_tape_1.py",
   "title": "1.8 Journal d'audit de l'étape 1",
   "step": 1,
   "kind": "code",
@@ -73,7 +73,7 @@
  },
  {
   "n": 10,
-  "file": "10_2_1_tra_abilit_automatique_et_validateur.py",
+  "file": "010_2_1_tra_abilit_automatique_et_validateur.py",
   "title": "2.1 Traçabilité automatique et validateurs",
   "step": 2,
   "kind": "code",
@@ -81,7 +81,7 @@
  },
  {
   "n": 11,
-  "file": "11_2_2_outil_1_profil_des_colonnes.py",
+  "file": "011_2_2_outil_1_profil_des_colonnes.py",
   "title": "2.2 Outil 1 : profil des colonnes",
   "step": 2,
   "kind": "code",
@@ -89,7 +89,7 @@
  },
  {
   "n": 12,
-  "file": "12_2_3_outil_2_unicit_et_doublons.py",
+  "file": "012_2_3_outil_2_unicit_et_doublons.py",
   "title": "2.3 Outil 2 : unicité et doublons",
   "step": 2,
   "kind": "code",
@@ -97,7 +97,7 @@
  },
  {
   "n": 13,
-  "file": "13_2_4_outil_3_relations_entre_tables.py",
+  "file": "013_2_4_outil_3_relations_entre_tables.py",
   "title": "2.4 Outil 3 : relations entre tables",
   "step": 2,
   "kind": "code",
@@ -105,7 +105,7 @@
  },
  {
   "n": 14,
-  "file": "14_2_5_outil_4_valeurs_manquantes_expliqu_e.py",
+  "file": "014_2_5_outil_4_valeurs_manquantes_expliqu_e.py",
   "title": "2.5 Outil 4 : valeurs manquantes expliquées",
   "step": 2,
   "kind": "code",
@@ -113,7 +113,7 @@
  },
  {
   "n": 15,
-  "file": "15_2_6_outil_5_d_tection_d_anomalies.py",
+  "file": "015_2_6_outil_5_d_tection_d_anomalies.py",
   "title": "2.6 Outil 5 : détection d'anomalies",
   "step": 2,
   "kind": "code",
@@ -121,7 +121,7 @@
  },
  {
   "n": 16,
-  "file": "16_2_7_carte_de_sant_du_dataset.py",
+  "file": "016_2_7_carte_de_sant_du_dataset.py",
   "title": "2.7 Carte de santé du dataset",
   "step": 2,
   "kind": "code",
@@ -129,7 +129,7 @@
  },
  {
   "n": 17,
-  "file": "17_2_8_constats_qualit.py",
+  "file": "017_2_8_constats_qualit.py",
   "title": "2.8 Constats qualité",
   "step": 2,
   "kind": "code",
@@ -137,7 +137,7 @@
  },
  {
   "n": 18,
-  "file": "18_2_9_point_de_contr_le_de_l_tape_2.py",
+  "file": "018_2_9_point_de_contr_le_de_l_tape_2.py",
   "title": "2.9 Point de contrôle de l'étape 2",
   "step": 2,
   "kind": "code",
@@ -145,7 +145,7 @@
  },
  {
   "n": 19,
-  "file": "19_3_1_llm_local.py",
+  "file": "019_3_1_llm_local.py",
   "title": "3.1 LLM local",
   "step": 3,
   "kind": "llm",
@@ -153,7 +153,7 @@
  },
  {
   "n": 20,
-  "file": "20_3_2_appel_llm_trac_et_extraction_json.py",
+  "file": "020_3_2_appel_llm_trac_et_extraction_json.py",
   "title": "3.2 Appel LLM tracé et extraction JSON",
   "step": 3,
   "kind": "code",
@@ -161,7 +161,7 @@
  },
  {
   "n": 21,
-  "file": "21_3_3_domain_contract_agent_comprendre_le_.py",
+  "file": "021_3_3_domain_contract_agent_comprendre_le_.py",
   "title": "3.3 Domain & Contract Agent : comprendre le métier et relire le contrat",
   "step": 3,
   "kind": "code",
@@ -169,7 +169,7 @@
  },
  {
   "n": 22,
-  "file": "22_3_4_profiler_agent_phase_1_criblage_d_te.py",
+  "file": "022_3_4_profiler_agent_phase_1_criblage_d_te.py",
   "title": "3.4 Profiler Agent · phase 1 : criblage déterministe",
   "step": 3,
   "kind": "code",
@@ -177,7 +177,7 @@
  },
  {
   "n": 23,
-  "file": "23_3_5_profiler_agent_phase_2_investigation.py",
+  "file": "023_3_5_profiler_agent_phase_2_investigation.py",
   "title": "3.5 Profiler Agent · phase 2 : investigation pilotée par le LLM",
   "step": 3,
   "kind": "code",
@@ -185,7 +185,7 @@
  },
  {
   "n": 24,
-  "file": "24_3_6_constats_de_l_investigation.py",
+  "file": "024_3_6_constats_de_l_investigation.py",
   "title": "3.6 Constats de l'investigation",
   "step": 3,
   "kind": "code",
@@ -193,7 +193,7 @@
  },
  {
   "n": 25,
-  "file": "25_3_7_profiler_agent_phase_3_interpr_tatio.py",
+  "file": "025_3_7_profiler_agent_phase_3_interpr_tatio.py",
   "title": "3.7 Profiler Agent · phase 3 : interprétation métier",
   "step": 3,
   "kind": "code",
@@ -201,7 +201,7 @@
  },
  {
   "n": 26,
-  "file": "26_3_8_rapport_de_profilage_et_point_de_con.py",
+  "file": "026_3_8_rapport_de_profilage_et_point_de_con.py",
   "title": "3.8 Rapport de profilage et point de contrôle",
   "step": 3,
   "kind": "code",
@@ -209,7 +209,7 @@
  },
  {
   "n": 27,
-  "file": "27_4_1_typage_zone_silver.py",
+  "file": "027_4_1_typage_zone_silver.py",
   "title": "4.1 Typage (zone silver)",
   "step": 4,
   "kind": "code",
@@ -217,7 +217,7 @@
  },
  {
   "n": 28,
-  "file": "28_4_1_bis_valeurs_manquantes_impossibles_e.py",
+  "file": "028_4_1_bis_valeurs_manquantes_impossibles_e.py",
   "title": "4.1 bis Valeurs manquantes, impossibles et extrêmes : la politique de traitement",
   "step": 4,
   "kind": "code",
@@ -225,7 +225,7 @@
  },
  {
   "n": 29,
-  "file": "29_4_2_moteur_de_r_gles_de_qualit_dama.py",
+  "file": "029_4_2_moteur_de_r_gles_de_qualit_dama.py",
   "title": "4.2 Moteur de règles de qualité (DAMA)",
   "step": 4,
   "kind": "code",
@@ -233,7 +233,7 @@
  },
  {
   "n": 30,
-  "file": "30_4_3_score_de_qualit_par_dimension_avant_.py",
+  "file": "030_4_3_score_de_qualit_par_dimension_avant_.py",
   "title": "4.3 Score de qualité par dimension (avant nettoyage)",
   "step": 4,
   "kind": "code",
@@ -241,7 +241,7 @@
  },
  {
   "n": 31,
-  "file": "31_4_4_corrections_candidates_et_bac_sable.py",
+  "file": "031_4_4_corrections_candidates_et_bac_sable.py",
   "title": "4.4 Corrections candidates et bac à sable",
   "step": 4,
   "kind": "code",
@@ -249,7 +249,7 @@
  },
  {
   "n": 32,
-  "file": "32_4_5_agent_qualit_tester_observer_d_cider.py",
+  "file": "032_4_5_agent_qualit_tester_observer_d_cider.py",
   "title": "4.5 Agent Qualité : tester → observer → décider",
   "step": 4,
   "kind": "code",
@@ -257,7 +257,7 @@
  },
  {
   "n": 33,
-  "file": "33_4_6_validation_automatique_selon_le_risq.py",
+  "file": "033_4_6_validation_automatique_selon_le_risq.py",
   "title": "4.6 Validation automatique selon le risque",
   "step": 4,
   "kind": "code",
@@ -265,7 +265,7 @@
  },
  {
   "n": 34,
-  "file": "34_4_7_application_contr_l_e_des_correction.py",
+  "file": "034_4_7_application_contr_l_e_des_correction.py",
   "title": "4.7 Application contrôlée des corrections",
   "step": 4,
   "kind": "code",
@@ -273,7 +273,7 @@
  },
  {
   "n": 35,
-  "file": "35_4_8_re_validation_et_data_quality_report.py",
+  "file": "035_4_8_re_validation_et_data_quality_report.py",
   "title": "4.8 Re-validation et Data Quality Report",
   "step": 4,
   "kind": "code",
@@ -281,7 +281,7 @@
  },
  {
   "n": 36,
-  "file": "36_4_9_point_de_contr_le_de_l_tape_4.py",
+  "file": "036_4_9_point_de_contr_le_de_l_tape_4.py",
   "title": "4.9 Point de contrôle de l'étape 4",
   "step": 4,
   "kind": "code",
@@ -289,7 +289,7 @@
  },
  {
   "n": 37,
-  "file": "37_5_1_pr_contr_le_et_entrep_t_sql.py",
+  "file": "037_5_1_pr_contr_le_et_entrep_t_sql.py",
   "title": "5.1 Pré-contrôle et entrepôt SQL",
   "step": 5,
   "kind": "code",
@@ -297,7 +297,7 @@
  },
  {
   "n": 38,
-  "file": "38_5_2_staging_et_indicateurs_de_temps_d_du.py",
+  "file": "038_5_2_staging_et_indicateurs_de_temps_d_du.py",
   "title": "5.2 Staging et indicateurs de temps déduits des données",
   "step": 5,
   "kind": "code",
@@ -305,7 +305,7 @@
  },
  {
   "n": 39,
-  "file": "39_5_3_conception_automatique_du_mod_le_en_.py",
+  "file": "039_5_3_conception_automatique_du_mod_le_en_.py",
   "title": "5.3 Conception automatique du modèle en étoile et tests",
   "step": 5,
   "kind": "code",
@@ -313,7 +313,7 @@
  },
  {
   "n": 40,
-  "file": "40_5_4_etl_agent_planification_et_construct.py",
+  "file": "040_5_4_etl_agent_planification_et_construct.py",
   "title": "5.4 ETL Agent : planification et construction",
   "step": 5,
   "kind": "code",
@@ -321,7 +321,7 @@
  },
  {
   "n": 41,
-  "file": "41_5_5_r_sultats_des_tests_et_pi_ge_du_doub.py",
+  "file": "041_5_5_r_sultats_des_tests_et_pi_ge_du_doub.py",
   "title": "5.5 Résultats des tests et piège du double comptage",
   "step": 5,
   "kind": "code",
@@ -329,7 +329,7 @@
  },
  {
   "n": 42,
-  "file": "42_5_6_export_et_point_de_contr_le_de_l_tap.py",
+  "file": "042_5_6_export_et_point_de_contr_le_de_l_tap.py",
   "title": "5.6 Export et point de contrôle de l'étape 5",
   "step": 5,
   "kind": "code",
@@ -337,7 +337,7 @@
  },
  {
   "n": 43,
-  "file": "43_6_1_moteur_de_graphe.py",
+  "file": "043_6_1_moteur_de_graphe.py",
   "title": "6.1 Moteur de graphe",
   "step": 6,
   "kind": "code",
@@ -345,7 +345,7 @@
  },
  {
   "n": 44,
-  "file": "44_6_2_tat_partag_et_enveloppe_des_n_uds.py",
+  "file": "044_6_2_tat_partag_et_enveloppe_des_n_uds.py",
   "title": "6.2 État partagé et enveloppe des nœuds",
   "step": 6,
   "kind": "code",
@@ -353,7 +353,7 @@
  },
  {
   "n": 45,
-  "file": "45_6_3_les_n_uds_du_graphe.py",
+  "file": "045_6_3_les_n_uds_du_graphe.py",
   "title": "6.3 Les nœuds du graphe",
   "step": 6,
   "kind": "code",
@@ -361,7 +361,7 @@
  },
  {
   "n": 46,
-  "file": "46_6_4_construction_du_graphe.py",
+  "file": "046_6_4_construction_du_graphe.py",
   "title": "6.4 Construction du graphe",
   "step": 6,
   "kind": "code",
@@ -369,7 +369,7 @@
  },
  {
   "n": 47,
-  "file": "47_6_5_point_d_entr_e_unique.py",
+  "file": "047_6_5_point_d_entr_e_unique.py",
   "title": "6.5 Point d'entrée unique",
   "step": 6,
   "kind": "code",
@@ -377,18 +377,362 @@
  },
  {
   "n": 48,
-  "file": "48_6_6_ex_cution_compl_te_en_une_commande.py",
+  "file": "048_6_6_ex_cution_compl_te_en_une_commande.py",
   "title": "6.6 Exécution complète en une commande",
   "step": 6,
+  "kind": "code",
+  "skip": "relance de la partie 1 par son orchestrateur (6.6)"
+ },
+ {
+  "n": 49,
+  "file": "049_6_7_bilan_de_la_data_preparation_agent.py",
+  "title": "6.7 Bilan de la Data Preparation Agent",
+  "step": 6,
+  "kind": "code",
+  "skip": "bilan de la relance 6.6 (6.7)"
+ },
+ {
+  "n": 50,
+  "file": "050_7_1_pont_ce_que_la_partie_1_transmet_la_.py",
+  "title": "7.1 Pont : ce que la partie 1 transmet à la partie 2",
+  "step": 7,
   "kind": "code",
   "skip": null
  },
  {
-  "n": 49,
-  "file": "49_6_7_bilan_de_la_data_preparation_agent.py",
-  "title": "6.7 Bilan de la Data Preparation Agent",
-  "step": 6,
+  "n": 51,
+  "file": "051_7_2_inventaire_s_mantique_ce_qui_est_cal.py",
+  "title": "7.2 Inventaire sémantique : ce qui est calculable",
+  "step": 7,
   "kind": "code",
   "skip": null
+ },
+ {
+  "n": 52,
+  "file": "052_7_3_base_de_connaissances_des_kpi.py",
+  "title": "7.3 Base de connaissances des KPI",
+  "step": 7,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 53,
+  "file": "053_7_4_validation_de_la_base_de_connaissanc.py",
+  "title": "7.4 Validation de la base de connaissances",
+  "step": 7,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 54,
+  "file": "054_7_5_moteur_de_recherche_s_mantique_rag.py",
+  "title": "7.5 Moteur de recherche sémantique (RAG)",
+  "step": 7,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 55,
+  "file": "055_7_6_faisabilit_de_chaque_kpi_sur_ce_data.py",
+  "title": "7.6 Faisabilité de chaque KPI sur CE dataset",
+  "step": 7,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 56,
+  "file": "056_7_7_secteur_m_tier_la_recherche_propose_.py",
+  "title": "7.7 Secteur métier : la recherche propose, le LLM décide, le code vérifie",
+  "step": 7,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 57,
+  "file": "057_7_8_kpi_de_r_f_rence_transmis_l_agent_kp.py",
+  "title": "7.8 KPI de référence transmis à l'agent KPI",
+  "step": 7,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 58,
+  "file": "058_7_9_point_de_contr_le_de_l_tape_7.py",
+  "title": "7.9 Point de contrôle de l'étape 7",
+  "step": 7,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 59,
+  "file": "059_8_1_compilateur_du_langage_ferm_au_sql_e.py",
+  "title": "8.1 Compilateur : du langage fermé au SQL (et au pandas)",
+  "step": 8,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 60,
+  "file": "060_8_2_liaison_des_kpi_automatique_quand_c_.py",
+  "title": "8.2 Liaison des KPI : automatique quand c'est évident, LLM quand il y a un doute",
+  "step": 8,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 61,
+  "file": "061_8_3_calcul_et_tests_de_chaque_kpi.py",
+  "title": "8.3 Calcul et tests de chaque KPI",
+  "step": 8,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 62,
+  "file": "062_8_4_kpi_propos_s_par_l_agent_hors_base_d.py",
+  "title": "8.4 KPI proposés par l'agent (hors base de connaissances)",
+  "step": 8,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 63,
+  "file": "063_8_5_catalogue_de_kpi.py",
+  "title": "8.5 Catalogue de KPI",
+  "step": 8,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 64,
+  "file": "064_8_6_point_de_contr_le_de_l_tape_8.py",
+  "title": "8.6 Point de contrôle de l'étape 8",
+  "step": 8,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 65,
+  "file": "065_9_1_s_ries_mensuelles_fiables.py",
+  "title": "9.1 Séries mensuelles fiables",
+  "step": 9,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 66,
+  "file": "066_9_2_r_gles_statistiques_d_tecter_ce_qui_.py",
+  "title": "9.2 Règles statistiques : détecter ce qui change",
+  "step": 9,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 67,
+  "file": "067_9_3_d_coupage_par_segment.py",
+  "title": "9.3 Découpage par segment",
+  "step": 9,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 68,
+  "file": "068_9_4_investigation_pilot_e_par_le_llm.py",
+  "title": "9.4 Investigation pilotée par le LLM",
+  "step": 9,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 69,
+  "file": "069_9_5_r_daction_des_insights_v_rifi_s.py",
+  "title": "9.5 Rédaction des insights vérifiés",
+  "step": 9,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 70,
+  "file": "070_9_6_rapport_d_analyse_et_point_de_contr_.py",
+  "title": "9.6 Rapport d'analyse et point de contrôle",
+  "step": 9,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 71,
+  "file": "071_10_1_candidats_du_dashboard.py",
+  "title": "10.1 Candidats du dashboard",
+  "step": 10,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 72,
+  "file": "072_10_2_mise_en_page_le_llm_choisit_le_supe.py",
+  "title": "10.2 Mise en page : le LLM choisit, le superviseur applique les bonnes pratiques",
+  "step": 10,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 73,
+  "file": "073_10_3_gabarit_styles_et_moteur_de_rendu.py",
+  "title": "10.3 Gabarit : styles et moteur de rendu",
+  "step": 10,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 74,
+  "file": "074_10_4_g_n_ration_du_dashboard.py",
+  "title": "10.4 Génération du dashboard",
+  "step": 10,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 75,
+  "file": "075_10_5_contr_les_et_point_de_contr_le.py",
+  "title": "10.5 Contrôles et point de contrôle",
+  "step": 10,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 76,
+  "file": "076_11_1_registre_des_tapes.py",
+  "title": "11.1 Registre des étapes",
+  "step": 11,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 77,
+  "file": "077_11_2_graphe_d_orchestration.py",
+  "title": "11.2 Graphe d'orchestration",
+  "step": 11,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 78,
+  "file": "078_11_3_point_d_entr_e_unique.py",
+  "title": "11.3 Point d'entrée unique",
+  "step": 11,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 79,
+  "file": "079_11_4_ex_cution_compl_te_en_un_appel.py",
+  "title": "11.4 Exécution complète en un appel",
+  "step": 11,
+  "kind": "code",
+  "skip": "relance de la partie 2 par son orchestrateur (11.4)"
+ },
+ {
+  "n": 80,
+  "file": "080_11_5_reprise_partir_d_une_tape_contr_les.py",
+  "title": "11.5 Reprise à partir d'une étape, contrôles et point de contrôle",
+  "step": 11,
+  "kind": "code",
+  "skip": "démo de reprise (11.5)"
+ },
+ {
+  "n": 81,
+  "file": "081_11_6_diagnostic_de_reproductibilit.py",
+  "title": "11.6 Diagnostic de reproductibilité",
+  "step": 11,
+  "kind": "code",
+  "skip": "diagnostic de reproductibilité (11.6)"
+ },
+ {
+  "n": 82,
+  "file": "082_12_1_registre_des_d_cisions.py",
+  "title": "12.1 Registre des décisions",
+  "step": 12,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 83,
+  "file": "083_12_2_r_gles_du_syst_me_comment_chaque_ag.py",
+  "title": "12.2 Règles du système : comment chaque agent décide",
+  "step": 12,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 84,
+  "file": "084_12_3_moteur_de_recherche_des_explication.py",
+  "title": "12.3 Moteur de recherche des explications",
+  "step": 12,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 85,
+  "file": "085_12_4_r_ponse_les_r_gles_expliquent_le_ll.py",
+  "title": "12.4 Réponse : les règles expliquent, le LLM reformule, le code vérifie",
+  "step": 12,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 86,
+  "file": "086_12_5_le_chat_posez_vos_questions.py",
+  "title": "12.5 Le chat : posez vos questions",
+  "step": 12,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 87,
+  "file": "087_12_6_valuation_et_point_de_contr_le.py",
+  "title": "12.6 Évaluation et point de contrôle",
+  "step": 12,
+  "kind": "code",
+  "skip": null
+ },
+ {
+  "n": 88,
+  "file": "088_13_1_graphe_global.py",
+  "title": "13.1 Graphe global",
+  "step": 13,
+  "kind": "code",
+  "skip": "graphe global : le moteur joue ce rôle (13.1)"
+ },
+ {
+  "n": 89,
+  "file": "089_13_2_point_d_entr_e_unique.py",
+  "title": "13.2 Point d'entrée unique",
+  "step": 13,
+  "kind": "code",
+  "skip": "point d'entrée global : le moteur joue ce rôle (13.2)"
+ },
+ {
+  "n": 90,
+  "file": "090_13_3_ex_cution_compl_te_de_a_z.py",
+  "title": "13.3 Exécution complète de A à Z",
+  "step": 13,
+  "kind": "code",
+  "skip": "relance de A à Z (13.3)"
+ },
+ {
+  "n": 91,
+  "file": "091_13_4_bilan_final_et_point_de_contr_le.py",
+  "title": "13.4 Bilan final et point de contrôle",
+  "step": 13,
+  "kind": "code",
+  "skip": "bilan de la relance 13.3 (13.4)"
+ },
+ {
+  "n": 92,
+  "file": "092_13_5_le_chat_xai_sur_le_run_complet.py",
+  "title": "13.5 Le chat XAI sur le run complet",
+  "step": 13,
+  "kind": "code",
+  "skip": "démo du chat (13.5) : le chat est dans l'interface"
  }
 ]

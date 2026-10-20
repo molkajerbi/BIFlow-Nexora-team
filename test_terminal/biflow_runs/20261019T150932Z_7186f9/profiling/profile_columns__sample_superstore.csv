@@ -1,0 +1,22 @@
+column,semantic_type,missing,missing_pct,distinct,distinct_pct,validity_pct,invalid,invalid_examples,whitespace_issues,top_values,min,max,mean,median
+Row ID,id,0,0.0,9994,100.0,100.0,0,[],0,"{'1': 1, '2': 1, '3': 1}",,,,
+Order ID,id,0,0.0,5009,50.12,100.0,0,[],0,"{'CA-2017-100111': 14, 'CA-2017-157987': 12, 'CA-2016-165330': 11}",,,,
+Order Date,datetime,0,0.0,1237,12.38,100.0,0,[],0,"{'9/5/2016': 38, '9/2/2017': 36, '11/10/2016': 35}",2014-01-03 00:00:00,2017-12-30 00:00:00,,
+Ship Date,datetime,0,0.0,1334,13.35,100.0,0,[],0,"{'12/16/2015': 35, '9/26/2017': 34, '11/21/2017': 32}",2014-01-07 00:00:00,2018-01-05 00:00:00,,
+Ship Mode,category,0,0.0,4,0.04,100.0,0,[],0,"{'Standard Class': 5968, 'Second Class': 1945, 'First Class': 1538}",,,,
+Customer ID,id,0,0.0,793,7.93,100.0,0,[],0,"{'WB-21850': 37, 'MA-17560': 34, 'JL-15835': 34}",,,,
+Customer Name,category,0,0.0,793,7.93,100.0,0,[],0,"{'William Brown': 37, 'Matt Abelman': 34, 'John Lee': 34}",,,,
+Segment,category,0,0.0,3,0.03,100.0,0,[],0,"{'Consumer': 5191, 'Corporate': 3020, 'Home Office': 1783}",,,,
+Country,category,0,0.0,1,0.01,100.0,0,[],0,{'United States': 9994},,,,
+City,category,0,0.0,531,5.31,100.0,0,[],0,"{'New York City': 915, 'Los Angeles': 747, 'Philadelphia': 537}",,,,
+State,category,0,0.0,49,0.49,100.0,0,[],0,"{'California': 2001, 'New York': 1128, 'Texas': 985}",,,,
+Postal Code,zip,0,0.0,631,6.31,100.0,0,[],0,"{'10035': 263, '10024': 230, '10009': 229}",,,,
+Region,category,0,0.0,4,0.04,100.0,0,[],0,"{'West': 3203, 'East': 2848, 'Central': 2323}",,,,
+Product ID,id,0,0.0,1862,18.63,100.0,0,[],0,"{'OFF-PA-10001970': 19, 'TEC-AC-10003832': 18, 'FUR-FU-10004270': 16}",,,,
+Category,category,0,0.0,3,0.03,100.0,0,[],0,"{'Office Supplies': 6026, 'Furniture': 2121, 'Technology': 1847}",,,,
+Sub-Category,category,0,0.0,17,0.17,100.0,0,[],0,"{'Binders': 1523, 'Paper': 1370, 'Furnishings': 957}",,,,
+Product Name,category,0,0.0,1850,18.51,99.84,16,"['Kensington SlimBlade Notebook Wireless Mouse with Nano Receiver ', 'Anker Ultrathin Bluetooth Wireless Keyboard Aluminum Cover with Stand ', 'Iceberg Mobile Mega Data/Printer Cart ']",16,"{'Staple envelope': 48, 'Staples': 46, 'Easy-staple paper': 46}",,,,
+Sales,numeric,0,0.0,5825,58.28,100.0,0,[],0,"{'12.96': 56, '19.44': 39, '15.552': 39}",0.444,22638.48,229.858,54.489999999999995
+Quantity,integer,0,0.0,14,0.14,100.0,0,[],0,"{'3': 2409, '2': 2402, '5': 1230}",1.0,14.0,3.79,3.0
+Discount,numeric,0,0.0,12,0.12,100.0,0,[],0,"{'0': 4798, '0.2': 3657, '0.7': 418}",0.0,0.8,0.156,0.2
+Profit,numeric,0,0.0,7287,72.91,100.0,0,[],0,"{'0': 65, '6.2208': 43, '9.3312': 38}",-6599.978,8399.976,28.657,8.6665

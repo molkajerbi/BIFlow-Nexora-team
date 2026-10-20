@@ -1,0 +1,2 @@
+table,lignes,colonnes,cellules_manquantes_%,colonnes_avec_manquants,valeurs_non_conformes,grain_unique,doublons_exacts,anomalies_IF,extrêmes_IQR
+sample_superstore,9994,21,0.0,0,16,True,0,100,1836

@@ -1,0 +1,5 @@
+table,type,lignes,colonnes,grain_unique,row_count,OK,construite_par,lineage_complete,sum_Sales,sum_Quantity,sum_Discount,sum_Profit,fk_Order Date_date_key,fk_Ship Date_date_key,fk_Customer ID,fk_Product ID
+dim_date,dimension,1464,10,True,True,True,agent,,,,,,,,,
+dim_customer,dimension,793,5,True,True,True,agent,,,,,,,,,
+dim_product,dimension,1862,5,True,True,True,agent,,,,,,,,,
+fact_sample_superstore,fait,9994,26,True,True,True,agent,True,True,True,True,True,True,True,True,True

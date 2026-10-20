@@ -1,0 +1,44 @@
+{
+ "decisions": 135,
+ "rules": 14,
+ "by_step": {
+  "9": 44,
+  "8": 38,
+  "1": 22,
+  "3": 9,
+  "7": 9,
+  "5": 5,
+  "4": 3,
+  "2": 1,
+  "6": 1,
+  "10": 1,
+  "11": 1,
+  "13": 1
+ },
+ "decided_by": {
+  "règle du code": 81,
+  "LLM, vérifié par le superviseur": 27,
+  "règle du code (liaison évidente)": 26,
+  "LLM (KPI proposé), vérifié par le superviseur — à confirmer par un humain": 1
+ },
+ "retrieval_precision_at_1": 1.0,
+ "retrieval_cases": 135,
+ "chat_turns": 9,
+ "chat_llm_verified": 0,
+ "chat_llm_refused": 0,
+ "ledger_errors": [],
+ "ready": true,
+ "demo_questions": [
+  "Résume le travail de BIFlow de A à Z.",
+  "Pourquoi la correction C01 a-t-elle été appliquée ?",
+  "Et qu'est-ce qui aurait changé cette décision ?",
+  "Pourquoi ce secteur métier a-t-il été choisi ?",
+  "Pourquoi le KPI « Nombre moyen d'échéances de paiement » utilise-t-il cette colonne ?",
+  "Le fait F21 est-il fiable ?",
+  "D'où vient l'insight I01 ?",
+  "Quelles décisions le superviseur a-t-il refusées au LLM ?",
+  "Comment BIFlow remplit-il les valeurs manquantes ?"
+ ],
+ "checkpoint": true,
+ "xai_dir": "C:\\Users\\ASUS\\Desktop\\5eme\\PI\\BIFlow-Nexora-team\\test_terminal\\biflow_runs\\20261019T150932Z_7186f9\\xai"
+}

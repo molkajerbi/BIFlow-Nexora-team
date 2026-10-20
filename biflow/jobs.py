@@ -1,4 +1,4 @@
-"""Gestion des traitements lancés depuis l'interface web : un dossier par traitement dans jobs/."""
+"""Gestion des analyses lancées depuis l'interface web : un dossier par analyse dans jobs/."""
 from __future__ import annotations
 
 import io
@@ -200,6 +200,32 @@ def star_schema(job_id: str) -> dict | None:
                 if c.endswith("_date_key"):
                     star[n]["links"][c] = ["dim_date", "date_key"]
     return star
+
+
+def bi(job_id: str) -> dict:
+    """Résumé de la partie 2 (secteur, KPI, analyse, dashboard)."""
+    return _read_json(JOBS_DIR / job_id / "results" / "bi.json") or {}
+
+
+def xai(job_id: str) -> dict:
+    """Rapport de l'agent XAI (registre des décisions, questions d'exemple)."""
+    return _read_json(JOBS_DIR / job_id / "results" / "xai.json") or {}
+
+
+def insights(job_id: str) -> list[dict]:
+    try:
+        return json.loads((JOBS_DIR / job_id / "results" / "insights.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+
+
+def dashboard_html(job_id: str) -> str | None:
+    """Le tableau de bord produit par le Dashboard Generator Agent (fichier HTML autonome)."""
+    path = bi(job_id).get("dashboard") or ((result(job_id) or {}).get("bi") or {}).get("dashboard")
+    try:
+        return Path(path).read_text(encoding="utf-8") if path else None
+    except OSError:
+        return None
 
 
 def ollama_models(url: str) -> list[str] | None:

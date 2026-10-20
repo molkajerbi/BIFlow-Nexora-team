@@ -1,0 +1,11 @@
+,_source_row_id,method,score,robust_z,main_reason,Sales,Quantity,Discount,Profit
+7772,sample_superstore:7772,IF + IQR,0.689,6.2,Profit,4499.985,5.0,0.7,-6599.978
+9774,sample_superstore:9774,IF + IQR,0.708,5.9,Profit,2177.584,8.0,0.8,-3701.8928
+3011,sample_superstore:3011,IF + IQR,0.683,5.9,Profit,2549.985,5.0,0.7,-3399.98
+683,sample_superstore:683,IF + IQR,0.672,5.9,Profit,7999.98,4.0,0.5,-3839.9904
+4991,sample_superstore:4991,IF + IQR,0.688,5.8,Profit,1889.99,5.0,0.8,-2929.4845
+3151,sample_superstore:3151,IF + IQR,0.686,5.7,Profit,1799.994,2.0,0.7,-2639.9912
+5310,sample_superstore:5310,IF + IQR,0.685,5.6,Profit,1525.188,6.0,0.8,-2287.782
+9639,sample_superstore:9639,IF + IQR,0.724,5.5,Profit,4297.644,13.0,0.4,-1862.3124
+2697,sample_superstore:2697,IF + IQR,0.683,5.5,Profit,22638.48,6.0,0.5,-1811.0784
+27,sample_superstore:27,IF + IQR,0.678,5.5,Profit,3083.43,7.0,0.5,-1665.0522

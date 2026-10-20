@@ -1,0 +1,64 @@
+{
+ "dim_date": {
+  "type": "dimension",
+  "grain": [
+   "date_key"
+  ],
+  "rows": 1464,
+  "links": {},
+  "measures": [],
+  "description": "calendrier continu (année, trimestre, mois, semaine, week-end)"
+ },
+ "dim_customer": {
+  "type": "dimension",
+  "grain": [
+   "Customer ID"
+  ],
+  "rows": 793,
+  "links": {},
+  "measures": [],
+  "description": "dimension extraite de sample_superstore : Customer ID -> Customer Name, Segment, Country"
+ },
+ "dim_product": {
+  "type": "dimension",
+  "grain": [
+   "Product ID"
+  ],
+  "rows": 1862,
+  "links": {},
+  "measures": [],
+  "description": "dimension extraite de sample_superstore : Product ID -> Country, Category, Sub-Category"
+ },
+ "fact_sample_superstore": {
+  "type": "fait",
+  "grain": [
+   "Row ID"
+  ],
+  "rows": 9994,
+  "links": {
+   "Order Date_date_key": [
+    "dim_date",
+    "date_key"
+   ],
+   "Ship Date_date_key": [
+    "dim_date",
+    "date_key"
+   ],
+   "Customer ID": [
+    "dim_customer",
+    "Customer ID"
+   ],
+   "Product ID": [
+    "dim_product",
+    "Product ID"
+   ]
+  },
+  "measures": [
+   "Sales",
+   "Quantity",
+   "Discount",
+   "Profit"
+  ],
+  "description": "fait issu de sample_superstore · 4 clé(s) · mesures : Sales, Quantity, Discount, Profit"
+ }
+}

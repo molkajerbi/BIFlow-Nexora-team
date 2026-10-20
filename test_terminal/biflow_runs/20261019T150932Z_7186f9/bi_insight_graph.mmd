@@ -1,0 +1,34 @@
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	plan(plan)
+	bridge_agent(bridge_agent)
+	kpi_agent(kpi_agent)
+	analyst_agent(analyst_agent)
+	dashboard_agent(dashboard_agent)
+	finalize(finalize)
+	report(report)
+	__end__([<p>__end__</p>]):::last
+	__start__ --> plan;
+	analyst_agent -. &nbsp;continue&nbsp; .-> dashboard_agent;
+	analyst_agent -. &nbsp;stop&nbsp; .-> report;
+	bridge_agent -. &nbsp;continue&nbsp; .-> kpi_agent;
+	bridge_agent -. &nbsp;stop&nbsp; .-> report;
+	dashboard_agent -. &nbsp;continue&nbsp; .-> finalize;
+	dashboard_agent -. &nbsp;stop&nbsp; .-> report;
+	kpi_agent -. &nbsp;continue&nbsp; .-> analyst_agent;
+	kpi_agent -. &nbsp;stop&nbsp; .-> report;
+	plan -.-> analyst_agent;
+	plan -.-> bridge_agent;
+	plan -.-> dashboard_agent;
+	plan -.-> kpi_agent;
+	plan -. &nbsp;stop&nbsp; .-> report;
+	finalize --> __end__;
+	report --> __end__;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc

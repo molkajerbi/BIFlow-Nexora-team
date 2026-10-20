@@ -65,6 +65,7 @@ class OllamaLLM:
         try:
             r = requests.post(f"{self.url}/api/chat", timeout=self.timeout, json={
                 "model": self.model_id, "messages": messages, "stream": False,
+                "keep_alive": "30m",                    # le modèle reste en mémoire entre deux appels (pas de rechargement)
                 "options": {"temperature": 0, "seed": 42, "num_predict": max_new_tokens, "num_ctx": self.num_ctx}})
             r.raise_for_status()
         except requests.RequestException as exc:

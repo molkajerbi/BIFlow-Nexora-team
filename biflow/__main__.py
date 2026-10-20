@@ -2,7 +2,7 @@
 
     python -m biflow extract                         # notebook -> biflow/steps/
     python -m biflow check                           # Ollama et le modèle sont-ils prêts ?
-    python -m biflow run data/olist                  # lance le pipeline complet (100 % automatique) sur un dataset
+    python -m biflow run data/olist                  # lance BIFlow de A à Z (100 % automatique) sur un dataset
     python -m biflow run data/olist --model qwen2.5:3b
 """
 from __future__ import annotations
@@ -21,7 +21,7 @@ def main() -> int:
         stream.reconfigure(encoding="utf-8", errors="replace")
     faulthandler.enable()                             # un plantage « natif » (DLL, mémoire) laisse une trace dans le journal
     print(f"[BIFlow] processus {os.getpid()} démarré le {datetime.now():%d/%m/%Y à %H:%M:%S}", flush=True)
-    parser = argparse.ArgumentParser(prog="biflow", description="BIFlow — Data Preparation Agent")
+    parser = argparse.ArgumentParser(prog="biflow", description="BIFlow — préparation, KPI, analyse, dashboard et explications")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("extract", help="extrait les étapes du notebook vers biflow/steps/")
     check = sub.add_parser("check", help="vérifie Ollama et le modèle")
@@ -58,6 +58,9 @@ def main() -> int:
     print(f"Résultats : {job_dir / 'result.json'}")
     if result.get("output_dir"):
         print(f"Livrables : {result['output_dir']}")
+    bi = result.get("bi") or {}
+    if bi.get("kpis") is not None:
+        print(f"KPI : {bi['kpis']} · constats : {bi.get('insights', '—')} · tableau de bord : {bi.get('dashboard', '—')}")
     return 0 if result["status"] == "success" else 2
 
 

@@ -1,0 +1,20 @@
+correction,table,column,_source_row_id,before,after
+C01,sample_superstore,Product Name,sample_superstore:808,Kensington SlimBlade Notebook Wireless Mouse with Nano Receiver ,Kensington SlimBlade Notebook Wireless Mouse with Nano Receiver
+C01,sample_superstore,Product Name,sample_superstore:889,Anker Ultrathin Bluetooth Wireless Keyboard Aluminum Cover with Stand ,Anker Ultrathin Bluetooth Wireless Keyboard Aluminum Cover with Stand
+C01,sample_superstore,Product Name,sample_superstore:1019,Iceberg Mobile Mega Data/Printer Cart ,Iceberg Mobile Mega Data/Printer Cart
+C01,sample_superstore,Product Name,sample_superstore:2169,Anker Ultrathin Bluetooth Wireless Keyboard Aluminum Cover with Stand ,Anker Ultrathin Bluetooth Wireless Keyboard Aluminum Cover with Stand
+C01,sample_superstore,Product Name,sample_superstore:2641,Anker Ultrathin Bluetooth Wireless Keyboard Aluminum Cover with Stand ,Anker Ultrathin Bluetooth Wireless Keyboard Aluminum Cover with Stand
+C01,sample_superstore,Product Name,sample_superstore:2759,Iceberg Mobile Mega Data/Printer Cart ,Iceberg Mobile Mega Data/Printer Cart
+C01,sample_superstore,Product Name,sample_superstore:2839,Iceberg Mobile Mega Data/Printer Cart ,Iceberg Mobile Mega Data/Printer Cart
+C01,sample_superstore,Product Name,sample_superstore:3590,Iceberg Mobile Mega Data/Printer Cart ,Iceberg Mobile Mega Data/Printer Cart
+C01,sample_superstore,Product Name,sample_superstore:3893,Kensington SlimBlade Notebook Wireless Mouse with Nano Receiver ,Kensington SlimBlade Notebook Wireless Mouse with Nano Receiver
+C01,sample_superstore,Product Name,sample_superstore:4900,Iceberg Mobile Mega Data/Printer Cart ,Iceberg Mobile Mega Data/Printer Cart
+C01,sample_superstore,Product Name,sample_superstore:5049,Kensington SlimBlade Notebook Wireless Mouse with Nano Receiver ,Kensington SlimBlade Notebook Wireless Mouse with Nano Receiver
+C01,sample_superstore,Product Name,sample_superstore:5759,Iceberg Mobile Mega Data/Printer Cart ,Iceberg Mobile Mega Data/Printer Cart
+C01,sample_superstore,Product Name,sample_superstore:8553,Anker Ultrathin Bluetooth Wireless Keyboard Aluminum Cover with Stand ,Anker Ultrathin Bluetooth Wireless Keyboard Aluminum Cover with Stand
+C01,sample_superstore,Product Name,sample_superstore:9148,Iceberg Mobile Mega Data/Printer Cart ,Iceberg Mobile Mega Data/Printer Cart
+C01,sample_superstore,Product Name,sample_superstore:9551,Iceberg Mobile Mega Data/Printer Cart ,Iceberg Mobile Mega Data/Printer Cart
+C01,sample_superstore,Product Name,sample_superstore:9789,Kensington SlimBlade Notebook Wireless Mouse with Nano Receiver ,Kensington SlimBlade Notebook Wireless Mouse with Nano Receiver
+C02,sample_superstore,Sales,sample_superstore:1803,4663.736,4509.254
+C02,sample_superstore,Sales,sample_superstore:2505,8187.65,4509.254
+C02,sample_superstore,Sales,sample_superstore:5884,4912.59,4509.254

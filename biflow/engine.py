@@ -1,14 +1,18 @@
 """Moteur de déploiement : exécute les étapes du notebook, sans les modifier, dans un espace de noms partagé.
 
+Le moteur joue le rôle du BI Orchestrator global du notebook (étape 13) :
+  partie 1  Data Preparation Agent  (étapes 1 à 5, puis livraison du modèle en étoile et des données nettoyées)
+  partie 2  BI & Insight Agent      (étapes 7 à 10 : base de connaissances, KPI, analyse, dashboard)
+  partie 3  XAI Agent               (étape 12 : registre des décisions et explications ; toujours construit)
+
 - la cellule LLM (GPU) est remplacée par OllamaLLM (CPU, sans clé d'API) ;
-- la progression (pourcentage, étape en cours) est écrite dans <job>/progress.json ;
-- les résultats de chaque agent sont publiés dans <job>/results/ dès que l'agent a terminé ;
-- le résultat final est écrit dans <job>/result.json ;
-- tout est automatique : aucune validation humaine n'est attendue ;
-- les étapes 1 à 5 sont exécutées une seule fois ; l'étape 6 du notebook (orchestrateur LangGraph, qui rejoue
-  toute la chaîne pour le futur BI Orchestrator) n'est pas relancée : le moteur livre directement le modèle en
-  étoile et les données nettoyées produits par l'étape 5 (voir _deliver) ;
-- si une étape 4 ou 5 s'arrête (qualité bloquante), le moteur ne plante pas : il livre le statut « bloqué » ou « échec ».
+- chaque cellule n'est exécutée qu'une seule fois : les cellules qui « refont tout » (relances 6.6, 11.4, 13.3…)
+  sont ignorées, les cellules qui définissent les orchestrateurs (6.1 à 6.5, 11.1 à 11.3) sont gardées ;
+- après chaque étape de la partie 2, son point de contrôle (ok7 … ok10) est relu, comme le fait run_bi_insight() :
+  s'il est faux, la partie 2 s'arrête proprement avec la raison ;
+- l'explicabilité est toujours construite, même après un arrêt : le chat peut alors expliquer pourquoi ;
+- la progression est écrite dans <job>/progress.json et les résultats de chaque agent dans <job>/results/
+  dès que l'agent a terminé ; le résultat final est écrit dans <job>/result.json.
 """
 from __future__ import annotations
 
@@ -29,8 +33,13 @@ from .llm import LLMUnavailable, OllamaLLM
 
 STEPS_DIR = Path(__file__).resolve().parent / "steps"
 STEP_NAMES = {1: "Contrat et ingestion", 2: "Outils du Profiler", 3: "Agents LLM (Domaine + Profiler)",
-              4: "Qualité et nettoyage", 5: "ETL : modèle en étoile"}
-STEP_WEIGHTS = {1: 5, 2: 10, 3: 40, 4: 30, 5: 15}              # part approximative du temps total (le LLM domine)
+              4: "Qualité et nettoyage", 5: "ETL : modèle en étoile", 6: "Livraison de la préparation",
+              7: "Base de connaissances des KPI", 8: "Agent KPI", 9: "Agent analyste", 10: "Agent dashboard",
+              11: "Orchestration de la partie 2", 12: "Explicabilité (XAI)"}
+STEP_WEIGHTS = {1: 3, 2: 6, 3: 26, 4: 20, 5: 8, 6: 1, 7: 8, 8: 12, 9: 9, 10: 4, 11: 1, 12: 2}   # part du temps (le LLM domine)
+PREP_STEPS, BI_STEPS, XAI_STEPS = {1, 2, 3, 4, 5}, {7, 8, 9, 10, 11}, {12}
+BI_CHECKPOINTS = {7: ("ok7", "checks7"), 8: ("ok8", "checks8"), 9: ("ok9", "checks9"), 10: ("ok10", "checks10")}
+BI_NODES = {7: "bridge_agent", 8: "kpi_agent", 9: "analyst_agent", 10: "dashboard_agent"}
 
 LLM_CELL = """
 LLM = _BIFLOW_LLM
@@ -49,7 +58,7 @@ class Progress:
     def __init__(self, job_dir: Path, cells: list[dict]):
         self.path = job_dir / "progress.json"
         per_step = {s: sum(c["step"] == s for c in cells) for s in STEP_WEIGHTS}
-        self.weights = [STEP_WEIGHTS.get(c["step"], 5) / max(per_step.get(c["step"], 1), 1) for c in cells]
+        self.weights = [STEP_WEIGHTS.get(c["step"], 1) / max(per_step.get(c["step"], 1), 1) for c in cells]
         self.state = {"status": "running", "percent": 0, "step_num": 1, "completed_step": 0, "done": 0,
                       "total": len(cells), "step": None, "cell": None,
                       "started_at": datetime.now(timezone.utc).isoformat(), "elapsed_s": 0, "error": None}
@@ -67,17 +76,31 @@ class Progress:
         self.write()
 
     def write(self) -> None:
+        """Écriture atomique (l'interface ne lit jamais un fichier à moitié écrit). Sous Windows, le remplacement est
+        refusé pendant que l'interface lit le fichier (toutes les 3 s) : on réessaie, puis on écrit directement.
+        Un problème d'affichage de la progression ne doit JAMAIS arrêter l'analyse."""
+        text = json.dumps(self.state, ensure_ascii=False, indent=1)
         tmp = self.path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(self.state, ensure_ascii=False, indent=1), encoding="utf-8")
-        tmp.replace(self.path)                       # écriture atomique : l'interface ne lit jamais un fichier à moitié écrit
+        try:
+            tmp.write_text(text, encoding="utf-8")
+            for _ in range(20):
+                try:
+                    tmp.replace(self.path)
+                    return
+                except PermissionError:              # fichier ouvert en lecture par l'interface
+                    time.sleep(0.1)
+            self.path.write_text(text, encoding="utf-8")
+        except OSError as exc:
+            print(f"(progression non enregistrée : {exc})", flush=True)
 
 
-def _display(obj) -> None:
+def _display(*objs, **_kw) -> None:
     """Remplace display() de Jupyter : affichage texte dans le journal."""
-    try:
-        print(obj.head(30).to_string() if hasattr(obj, "head") else obj)
-    except Exception:
-        print(obj)
+    for obj in objs:
+        try:
+            print(obj.head(30).to_string() if hasattr(obj, "head") else obj)
+        except Exception:
+            print(obj)
 
 
 def _exec_cell(source: str, ns: dict, name: str) -> None:
@@ -91,7 +114,77 @@ def _exec_cell(source: str, ns: dict, name: str) -> None:
             _display(value)
 
 
-def _export(ns: dict, job_dir: Path, llm) -> dict:
+def _records(obj) -> list:
+    """Liste de dictionnaires sérialisables (DataFrame, liste ou dictionnaire)."""
+    import pandas as pd
+    if isinstance(obj, pd.DataFrame):
+        return json.loads(obj.to_json(orient="records", force_ascii=False, default_handler=str))
+    return obj or []
+
+
+def _export_bi(ns: dict, res_dir: Path, save) -> dict | None:
+    """Résultats de la partie 2 (KPI, analyse, dashboard) lisibles par l'interface."""
+    import pandas as pd
+    if "BI_INPUT" not in ns:
+        return None
+    info = {"domain": ns["BI_INPUT"].get("domain"), "sectors": ns.get("BI_SECTORS"), "mode": ns.get("BI_MODE"),
+            "sector_reason": ns.get("sector_reason"), "sector_source": ns.get("sector_source"),
+            "reference_date": ns.get("REF_DATE"), "search_mode": getattr(ns.get("SEARCH"), "mode", None),
+            "facts_tables": ns.get("BI_FACTS")}
+    if isinstance(ns.get("SECTOR_EVIDENCE"), pd.DataFrame):
+        save("bi_sector_evidence", ns["SECTOR_EVIDENCE"])
+    if isinstance(ns.get("KPI_CATALOG"), pd.DataFrame):
+        cat = ns["KPI_CATALOG"].copy()
+        fmt = ns.get("fmt_value")
+        cat["valeur"] = [fmt(v, u) if fmt else v for v, u in zip(cat["value"], cat["unit"])]
+        keep = ["id", "name", "valeur", "value", "unit", "direction", "status", "binding", "sector", "definition",
+                "formula", "fact", "columns", "reliability", "periods", "sql"]
+        save("kpi_catalog", cat[[c for c in keep if c in cat]])
+        reasons = {k: (b.get("reason") or "") for k, b in (ns.get("BINDINGS") or {}).items()}
+        info.update(kpis=len(cat), validated=int(cat["status"].str.startswith("validé").sum()),
+                    to_confirm=int((cat["status"] == "à confirmer").sum()),
+                    proposed=len(ns.get("PROPOSALS") or {}), dropped=ns.get("DROPPED") or {},
+                    failed={k: str(v) for k, v in (ns.get("FAILED") or {}).items()}, binding_reasons=reasons)
+    if ns.get("KPI_SERIES"):
+        pd.concat(ns["KPI_SERIES"].values(), ignore_index=True)[["id", "period", "v"]].to_csv(res_dir / "kpi_series.csv",
+                                                                                             index=False)
+    if "FACTS" in ns:
+        facts = [{k: f.get(k) for k in ("id", "kpi", "label", "type", "texte", "priority", "valence", "sens")}
+                 for f in ns["FACTS"].values()]
+        save("analysis_facts", pd.DataFrame(facts))
+        info.update(series=len(ns.get("SERIES") or {}),
+                    signals=sum(1 for f in ns["FACTS"].values() if f["type"] not in {"valeur", "segment", "contribution"}),
+                    segments=sum(1 for f in ns["FACTS"].values() if f["type"] in {"segment", "contribution"}),
+                    investigations=[{"fait": i["fait"], "axe": list(i["axe"])[-1], "pourquoi": i["pourquoi"],
+                                     "source": i.get("source"), "résultat": i.get("résultat")}
+                                    for i in ns.get("INVESTIGATIONS") or []],
+                    reliable_periods={f: [p[0], p[-1]] if p else [] for f, p in (ns.get("RELIABLE") or {}).items()})
+    if "INSIGHTS" in ns and "ANALYSIS" in ns:
+        (res_dir / "insights.json").write_text(json.dumps(ns["INSIGHTS"], ensure_ascii=False, indent=1, default=str),
+                                               encoding="utf-8")
+        info.update(insights=len(ns["INSIGHTS"]), insights_llm=sum(i.get("source") == "LLM" for i in ns["INSIGHTS"]))
+    if ns.get("DASHBOARD_PATH") and Path(ns["DASHBOARD_PATH"]).exists() and "checks10" in ns:
+        info.update(dashboard=str(Path(ns["DASHBOARD_PATH"]).resolve()), layout_source=ns.get("layout_source"),
+                    dashboard_title=(ns.get("LAYOUT") or {}).get("titre"))
+    (res_dir / "bi.json").write_text(json.dumps(info, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
+    return info
+
+
+def _export_xai(ns: dict, res_dir: Path, save) -> dict | None:
+    """Registre des décisions et rapport de l'agent XAI (le chat de l'interface les relit)."""
+    import pandas as pd
+    if not isinstance(ns.get("DECISIONS"), pd.DataFrame) or "XAI_REPORT" not in ns:
+        return None
+    d = ns["DECISIONS"]
+    save("decisions", d[[c for c in ("id", "étape", "agent", "sujet", "objet", "décision", "pourquoi", "décidé_par")
+                         if c in d]])
+    info = {**ns["XAI_REPORT"], "ready": True, "demo_questions": ns.get("DEMO_QUESTIONS") or [],
+            "checkpoint": bool(ns.get("ok12")), "xai_dir": str(Path(ns["XAI_DIR"]).resolve())}
+    (res_dir / "xai.json").write_text(json.dumps(info, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
+    return info
+
+
+def _export(ns: dict, job_dir: Path, llm, run_info: dict | None = None) -> dict:
     """Résultats lisibles par l'interface (JSON + CSV), à partir des variables du pipeline.
     Appelé à la fin de chaque étape (résultats partiels) puis à la fin du traitement."""
     import pandas as pd
@@ -137,6 +230,9 @@ def _export(ns: dict, job_dir: Path, llm) -> dict:
                   for c in ns.get("CANDIDATES", [])]
     save("candidates", pd.DataFrame(candidates))
 
+    run_info = run_info or {}
+    bi = _export_bi(ns, res_dir, save)
+    xai = _export_xai(ns, res_dir, save)
     run_dir = ns.get("RUN_DIR")
     out_dir = Path(final.get("outputs", {}).get("directory", "")) if final.get("outputs") else None
     review = ns.get("REVIEW") or {}
@@ -152,15 +248,17 @@ def _export(ns: dict, job_dir: Path, llm) -> dict:
                   "files": len(raw.manifest) if raw is not None else len(contract)},
         "quality_status": ns.get("STATUS"),
         "review": {k: review.get(k) for k in ("mode", "reviewer", "approved", "set_aside")},
+        "bi": {**(bi or {}), **(run_info.get("bi") or {})} if (bi or run_info.get("bi")) else None,
+        "xai": {**(xai or {}), **(run_info.get("xai") or {})} if (xai or run_info.get("xai")) else None,
+        "parts": run_info.get("parts", []),
         "llm": {"model": getattr(llm, "model_id", None), "calls": getattr(llm, "calls", None),
                 "cache_hits": getattr(llm, "cache_hits", None)},
     }
 
 
 def _deliver(ns: dict, error: str | None) -> dict:
-    """Livraison, sans rien recalculer : le modèle en étoile (base + CSV, déjà produits par l'étape 5) et les données
-    nettoyées, après un contrôle rapide (données brutes inchangées, journal d'audit intact)."""
-    import pandas as pd
+    """Livraison de la partie 1, sans rien recalculer : le modèle en étoile (base + CSV, déjà produits par l'étape 5) et
+    les données nettoyées, après un contrôle rapide (données brutes inchangées, journal d'audit intact)."""
     status = ns.get("STATUS")
     run_dir = Path(ns["RUN_DIR"]) if ns.get("RUN_DIR") else None
     etl_ok = bool(ns.get("ETL_STATUS")) and all(s == "testée" for s in ns["ETL_STATUS"].values())
@@ -203,10 +301,10 @@ def _deliver(ns: dict, error: str | None) -> dict:
     return final
 
 
-def _publish_partial(ns: dict, job_dir: Path, llm, completed_step: int) -> None:
+def _publish_partial(ns: dict, job_dir: Path, llm, completed_step: int, run_info: dict) -> None:
     """Résultats disponibles à la fin d'une étape : l'interface les affiche sans attendre la fin du traitement."""
     try:
-        partial = _export(ns, job_dir, llm)
+        partial = _export(ns, job_dir, llm, run_info)
         partial["completed_step"] = completed_step
         (job_dir / "results" / "partial.json").write_text(json.dumps(partial, ensure_ascii=False, indent=1, default=str),
                                                           encoding="utf-8")
@@ -214,8 +312,38 @@ def _publish_partial(ns: dict, job_dir: Path, llm, completed_step: int) -> None:
         print(f"(résultats partiels non publiés : {exc})")
 
 
+def _failed_checks(ns: dict, step: int) -> str:
+    ok_name, checks_name = BI_CHECKPOINTS[step]
+    failed = [k for k, v in (ns.get(checks_name) or {}).items() if not v]
+    return f"point de contrôle de l'étape {step} en échec : {', '.join(failed) or '?'}"
+
+
+def _embeddings_usable() -> bool:
+    """Teste le modèle d'embeddings (étape 7.5) dans un processus à part, AVANT de le charger dans le pipeline.
+    Sous Windows, une bibliothèque torch mal installée peut faire planter Python d'un coup (sans message) au lieu de
+    lever une erreur : le test protège le pipeline, qui passe alors en recherche lexicale (repli prévu par le notebook).
+    Le premier test télécharge le modèle (Internet nécessaire une seule fois)."""
+    import subprocess
+    name = os.environ.get("BIFLOW_EMBED_MODEL", "intfloat/multilingual-e5-small")
+    code = ("from sentence_transformers import SentenceTransformer; "
+            f"SentenceTransformer({name!r}, device='cpu').encode(['test']); print('ok')")
+    flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+    try:
+        r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=1800,
+                           creationflags=flags, env={**os.environ, "PYTHONUTF8": "1"})
+    except (subprocess.TimeoutExpired, OSError) as exc:
+        print(f"Embeddings : test impossible ({exc}) : recherche lexicale", flush=True)
+        return False
+    if r.returncode == 0 and "ok" in r.stdout:
+        print("Embeddings : modèle multilingue disponible", flush=True)
+        return True
+    last = (r.stderr or r.stdout or "").strip().splitlines()[-1:] or [f"code de sortie {r.returncode}"]
+    print(f"Embeddings indisponibles ({last[0][:200]}) : recherche lexicale", flush=True)
+    return False
+
+
 def run_pipeline(data_dir: str | Path, job_dir: str | Path, llm=None) -> dict:
-    """Lance la Data Preparation Agent (100 % automatique) sur un dataset.
+    """Lance BIFlow de A à Z (100 % automatique) sur un dataset.
     Renvoie (et écrit dans <job>/result.json) le résultat."""
     data_dir, job_dir = Path(data_dir).resolve(), Path(job_dir).resolve()
     job_dir.mkdir(parents=True, exist_ok=True)
@@ -223,7 +351,7 @@ def run_pipeline(data_dir: str | Path, job_dir: str | Path, llm=None) -> dict:
     if not manifest_path.exists() or NOTEBOOK.stat().st_mtime > manifest_path.stat().st_mtime:
         extract()                                     # notebook modifié (ou étapes absentes) : ré-extraction automatique
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    cells = [m for m in manifest if not m["skip"] and m["step"] in STEP_NAMES]   # étapes 1 à 5 (pas l'étape 6)
+    cells = [m for m in manifest if not m["skip"] and m["step"] in STEP_NAMES]
     progress = Progress(job_dir, cells)
 
     os.environ["BIFLOW_DATA_DIR"] = str(data_dir)     # lu par la cellule 1.1
@@ -231,39 +359,136 @@ def run_pipeline(data_dir: str | Path, job_dir: str | Path, llm=None) -> dict:
     cwd = os.getcwd()
     os.chdir(job_dir)                                 # ./biflow_runs est propre à ce job
     llm = llm or OllamaLLM()
+    os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")      # Windows : deux copies d'OpenMP (torch + numpy) ne plantent plus
+    os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+    if not _embeddings_usable():                      # bibliothèques absentes ou instables : on ne les charge jamais
+        sys.modules["sentence_transformers"] = None   # → ImportError propre : le notebook passe en recherche lexicale
     module = types.ModuleType("biflow_pipeline")     # un vrai module : nécessaire aux dataclasses du notebook
     sys.modules["biflow_pipeline"] = module
     ns = module.__dict__
     ns.update({"display": _display, "_BIFLOW_LLM": llm})
     if hasattr(llm, "bind"):                          # LLM de test : accès à l'état du pipeline
         llm.bind(ns)
-    stop_error, result = None, None
+
+    run_info = {"parts": [], "bi": None, "xai": None}
+    prep_error = bi_error = xai_error = None
+    delivered = bi_started = xai_started = False
+    t_part = time.perf_counter()
+
+    def close_part(name: str, status: str, error: str | None) -> None:
+        nonlocal t_part
+        run_info["parts"].append({"node": name, "status": status, "error": error,
+                                  "seconds": round(time.perf_counter() - t_part, 1)})
+        t_part = time.perf_counter()
+
+    def deliver() -> None:
+        nonlocal delivered
+        delivered = True
+        progress.update(step="Livraison", cell="Livraison du modèle en étoile et des données nettoyées")
+        print("\n### Livraison : modèle en étoile et données nettoyées", flush=True)
+        ns["DATA_PREP_RESULT"] = _deliver(ns, prep_error)
+        r = ns["DATA_PREP_RESULT"]
+        ns["AUDIT"].log("orchestrator", "data_preparation_finished", {"status": r["status"], "error": r.get("error")},
+                        level="INFO" if r["status"] == "success" else "WARNING")
+        close_part("data_preparation", r["status"], r.get("error"))
+
+    def finish_bi() -> None:
+        """Le moteur joue le rôle de run_bi_insight() : même rapport, même trace dans l'audit."""
+        status = "failed" if bi_error else "success"
+        history = [{"node": BI_NODES[s], "status": "running", "seconds": None, "summary": None}
+                   for s in sorted(BI_NODES) if ns.get(BI_CHECKPOINTS[s][0])]
+        ns["BI_RESULT"] = {"status": status, "error": bi_error, "history": history, "stages": {}, "outputs": {}}
+        ns["AUDIT"].log("orchestrator", "bi_insight_finished", {"status": status, "error": bi_error},
+                        level="INFO" if status == "success" else "WARNING")
+        close_part("bi_insight", status, bi_error)
+        run_info["bi"] = {"status": status, "error": bi_error}
+
+    def start_xai() -> None:
+        nonlocal xai_started
+        xai_started = True
+        prep = (ns.get("DATA_PREP_RESULT") or {}).get("status", "failed")
+        status = prep if prep != "success" else ("failed" if bi_error else "success")
+        error = (ns.get("DATA_PREP_RESULT") or {}).get("error") if prep != "success" else bi_error
+        ns["BIFLOW_RESULT"] = {"status": status, "error": error, "history": [
+            {"node": p["node"], "status": p["status"], "seconds": p["seconds"], "summary": None} for p in run_info["parts"]]}
+        ns["AUDIT"].log("orchestrator", "biflow_finished", {"status": status, "error": error},
+                        level="INFO" if status == "success" else "WARNING")
+
+    result, ran, failed_steps = None, set(), set()
     try:
         if hasattr(llm, "check"):
             llm.check()                               # échoue tout de suite si Ollama n'est pas prêt
         for i, cell in enumerate(cells):
-            if i and cell["step"] != cells[i - 1]["step"]:    # une étape vient de se terminer
+            step = cell["step"]
+            if i and step != cells[i - 1]["step"]:    # une étape vient de se terminer
                 done_step = cells[i - 1]["step"]
-                _publish_partial(ns, job_dir, llm, done_step)
-                progress.update(completed_step=done_step)
+                if done_step in BI_CHECKPOINTS and bi_started and not bi_error and not ns.get(BI_CHECKPOINTS[done_step][0]):
+                    bi_error = _failed_checks(ns, done_step)          # comme run_bi_insight() : arrêt propre de la partie 2
+                    failed_steps.add(done_step)
+                    print(f"!! Partie 2 arrêtée : {bi_error}", flush=True)
+                if done_step in ran and done_step not in failed_steps:   # seule une étape exécutée sans erreur compte
+                    _publish_partial(ns, job_dir, llm, done_step, run_info)
+                    progress.update(completed_step=done_step)
+            if step not in PREP_STEPS and not delivered:
+                deliver()
+                if ns["DATA_PREP_RESULT"]["status"] == "success":
+                    _publish_partial(ns, job_dir, llm, 6, run_info)
+                    progress.update(completed_step=6)
+            prep_ok = (ns.get("DATA_PREP_RESULT") or {}).get("status") == "success"
+            if step in PREP_STEPS and prep_error:
+                continue                              # arrêt « métier » de la partie 1 : on va directement à la livraison
+            if step in BI_STEPS:
+                if not prep_ok or bi_error:
+                    continue                          # partie 2 seulement après une préparation réussie
+                bi_started = True
+            if step in XAI_STEPS:
+                if bi_started and run_info["bi"] is None:
+                    finish_bi()
+                if not xai_started:
+                    start_xai()
+                if xai_error:
+                    continue
+            ran.add(step)
             progress.at_cell(i, cell)
             print(f"\n### [{i + 1}/{len(cells)}] {cell['title']}", flush=True)
             source = LLM_CELL if cell["kind"] == "llm" else (STEPS_DIR / cell["file"]).read_text(encoding="utf-8")
             try:
                 _exec_cell(source, ns, cell["file"])
-            except LLMUnavailable:
-                raise
-            except Exception as exc:
-                if cell["step"] not in (4, 5):
+            except LLMUnavailable as exc:
+                failed_steps.add(step)
+                if step in PREP_STEPS:
                     raise
-                stop_error = f"{cell['title']} : {type(exc).__name__} : {exc}"     # arrêt « métier » (qualité bloquante…)
-                print(f"!! Arrêt à {stop_error}", flush=True)
-                break
-        progress.update(completed_step=5 if stop_error is None else progress.state["completed_step"],
-                        step="Livraison", cell="Livraison du modèle en étoile et des données nettoyées", percent=99)
-        print("\n### Livraison : modèle en étoile et données nettoyées", flush=True)
-        ns["DATA_PREP_RESULT"] = _deliver(ns, stop_error)
-        result = _export(ns, job_dir, llm)
+                if step in BI_STEPS:
+                    bi_error = f"{cell['title']} : {exc}"
+                else:
+                    xai_error = f"{cell['title']} : {exc}"
+                print(f"!! {exc}", flush=True)
+            except Exception as exc:
+                where = f"{cell['title']} : {type(exc).__name__} : {exc}"
+                failed_steps.add(step)
+                if step in (4, 5):
+                    prep_error = where                # arrêt « métier » (qualité bloquante…)
+                elif step in BI_STEPS:
+                    bi_error = where
+                elif step in XAI_STEPS:
+                    xai_error = where
+                else:
+                    raise
+                traceback.print_exc()
+                print(f"!! Arrêt à {where}", flush=True)
+        if not delivered:
+            deliver()
+        if bi_started and run_info["bi"] is None:
+            finish_bi()
+        last = cells[-1]["step"] if cells else 12
+        if last in BI_CHECKPOINTS and bi_started and not bi_error and not ns.get(BI_CHECKPOINTS[last][0]):
+            bi_error = _failed_checks(ns, last)
+        run_info["xai"] = {"status": "failed" if xai_error or not xai_started else "success", "error": xai_error}
+        if xai_started:
+            close_part("explainability", run_info["xai"]["status"], xai_error)
+        result = _export(ns, job_dir, llm, run_info)
+        if result["status"] == "success" and bi_error:
+            result.update(status="failed", error=f"Analyse BI interrompue : {bi_error}")
     except Exception as exc:
         traceback.print_exc()
         result = {"status": "failed", "error": f"{type(exc).__name__} : {exc}",
@@ -273,7 +498,7 @@ def run_pipeline(data_dir: str | Path, job_dir: str | Path, llm=None) -> dict:
     result["data_dir"] = str(data_dir)
     result["finished_at"] = datetime.now(timezone.utc).isoformat()
     for obj in gc.get_objects():                      # ferme les entrepôts (sous Windows, un fichier ouvert est verrouillé)
-        if type(obj).__name__ == "Warehouse":
+        if type(obj).__name__ in ("Warehouse", "BIWarehouse", "BIWorkspace"):
             try:
                 obj.con.close()
             except Exception:
@@ -285,5 +510,5 @@ def run_pipeline(data_dir: str | Path, job_dir: str | Path, llm=None) -> dict:
             print(f"Zip des livrables impossible : {exc}")
     (job_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
     progress.update(status=result["status"], done=len(cells), percent=100, error=result.get("error"),
-                    completed_step=6 if result["status"] == "success" else progress.state["completed_step"])
+                    completed_step=13 if result["status"] == "success" else progress.state["completed_step"])
     return result

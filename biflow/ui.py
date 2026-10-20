@@ -185,6 +185,11 @@ _ICON_PATHS = {
               'a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/>',
     "upload": '<path d="M12 16V4"/><path d="m6 10 6-6 6 6"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>',
     "chart": '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
+    "target": '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/>',
+    "trend": '<path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/>',
+    "layout": '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>',
+    "message": '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/><path d="M8 9h8M8 13h5"/>',
+    "download": '<path d="M12 4v12"/><path d="m6 10 6 6 6-6"/><path d="M4 20h16"/>',
 }
 
 
@@ -335,9 +340,9 @@ button[data-baseweb="tab"][aria-selected="true"] p, [data-testid="stTabs"] [role
 .bf-muted { color:$MUTED; }
 
 /* ---------- chaîne d'étapes */
-.bf-chain { display:grid; grid-template-columns: repeat(5, 1fr); margin: .6rem 0 1.2rem; padding:1.5rem .6rem 1.3rem;
+.bf-chain { display:grid; grid-template-columns: repeat(7, 1fr); margin: .6rem 0 1.2rem; padding:1.5rem .4rem 1.3rem;
   background:$SURFACE; border:1px solid $LINE; border-radius:22px; box-shadow: var(--shadow); }
-.bf-station { position:relative; padding: 0 .7rem; text-align:center; }
+.bf-station { position:relative; padding: 0 .45rem; text-align:center; }
 .bf-station::before { content:""; position:absolute; top:25px; left:calc(-50% + 30px); width:calc(100% - 60px); height:3px;
   border-radius:3px; background:$LINE; }
 .bf-station:first-child::before { display:none; }
@@ -485,6 +490,7 @@ button[data-baseweb="tab"][aria-selected="true"] p, [data-testid="stTabs"] [role
   .bf-hero { grid-template-columns: 1fr; padding:2rem 1.5rem; }
   .bf-hero h1 { font-size: 2rem; }
 }
+@media (max-width: 1100px) { .bf-chain { grid-template-columns: repeat(4, 1fr); row-gap:1.4rem; } .bf-station:nth-child(5)::before { display:none; } }
 @media (max-width: 760px) {
   .bf-findings { grid-template-columns: 1fr; } .bf-findings .big { border-right:none; padding-right:0; }
   .bf-leg { grid-template-columns: 1fr; }
@@ -511,7 +517,7 @@ LOGO = f"""<svg width="38" height="38" viewBox="0 0 34 34" aria-hidden="true">
 
 def brand() -> str:
     return h(f'<div class="bf-brand">{LOGO}<div><b>BI<em>Flow</em></b><span class="tag">Nexora</span><br>'
-             f'<span>Préparation intelligente de données pour la BI</span></div></div>')
+             f'<span>De la donnée brute à la décision expliquée</span></div></div>')
 
 
 def topline() -> str:
@@ -524,14 +530,14 @@ def hero() -> str:
                     (("lock", "100 % local, rien ne quitte l'ordinateur"), ("cpu", "IA intégrée, sans clé"),
                      ("route", "Chaque modification est tracée")))
     deliver = "".join(f'<div class="it"><i>{icon(i, 20)}</i><div><b>{esc(t)}</b><span>{esc(d)}</span></div></div>' for i, t, d in
-                      (("star", "Un modèle en étoile", "tables de faits et axes d'analyse, prêts pour la BI"),
-                       ("shield", "Des données vérifiées", "corrigées sans perte, contrôlées table par table"),
-                       ("chart", "Un diagnostic expliqué", "chaque point relevé expliqué en français"),
-                       ("database", "Une base prête à l'emploi", "un fichier unique à brancher sur vos outils")))
-    return h(f'<div class="bf-hero"><div><span class="bf-eyebrow">{icon("sparkles", 14, 2.4)} Agent de préparation des données</span>'
-             f'<h1>De vos fichiers bruts à un <span>modèle prêt pour la BI</span>.</h1>'
-             f'<p>Déposez vos fichiers : des agents d\'IA les comprennent, diagnostiquent leur qualité, corrigent ce qui peut '
-             f'l\'être sans risque et construisent un modèle en étoile prêt pour vos tableaux de bord.</p>'
+                      (("star", "Des données prêtes", "nettoyées sans perte et organisées en modèle en étoile"),
+                       ("target", "Des KPI vérifiés", "adaptés à votre métier, chaque valeur calculée deux fois"),
+                       ("layout", "Un tableau de bord", "graphiques, constats et recommandations"),
+                       ("message", "Un assistant qui explique", "posez « pourquoi ? » à tout moment, réponse avec preuves")))
+    return h(f'<div class="bf-hero"><div><span class="bf-eyebrow">{icon("sparkles", 14, 2.4)} Agents d\'IA pour la BI</span>'
+             f'<h1>De vos fichiers bruts à des <span>décisions expliquées</span>.</h1>'
+             f'<p>Déposez vos fichiers : des agents d\'IA les préparent, calculent les indicateurs de votre métier, détectent '
+             f'ce qui change, construisent un tableau de bord et expliquent chacune de leurs décisions.</p>'
              f'<div class="bf-trust">{trust}</div></div>'
              f'<div class="bf-deliver"><small>Ce que vous obtenez</small>{deliver}</div></div>')
 
@@ -564,26 +570,30 @@ STATIONS = [
     ("Compréhension", "lit vos fichiers et repère les tables et leurs liens"),
     ("Diagnostic", "examine la qualité de chaque colonne"),
     ("Nettoyage", "corrige ce qui peut l'être sans risque"),
-    ("Modélisation", "construit le modèle en étoile"),
-    ("Livraison", "livre le modèle en étoile et les données nettoyées"),
+    ("Modélisation", "construit et livre le modèle en étoile"),
+    ("Indicateurs", "choisit, calcule et vérifie les KPI de votre métier"),
+    ("Analyse", "détecte ce qui change et rédige les constats"),
+    ("Tableau de bord", "assemble un tableau de bord interactif"),
 ]
-STATION_ICONS = ["search", "activity", "sparkles", "star", "shield"]
-STATION_DONE_AT = [1, 3, 4, 5, 6]                   # étape du moteur après laquelle chaque station est terminée
+STATION_ICONS = ["search", "activity", "sparkles", "star", "target", "trend", "layout"]
+STATION_DONE_AT = [1, 3, 4, 6, 8, 9, 10]            # étape du moteur après laquelle chaque station est terminée
 
 
 def station_states(completed_step: int, status: str) -> list[str]:
+    """État de chaque station de la chaîne (un seul pipeline, de la lecture des fichiers au tableau de bord)."""
+    n = len(STATIONS)
     states = ["done" if completed_step >= s else "todo" for s in STATION_DONE_AT]
     if status == "running":
         nxt = next((i for i, s in enumerate(states) if s == "todo"), None)
         if nxt is not None:
             states[nxt] = "active"
-    elif status in ("awaiting_human", "blocked"):
-        states = ["done", "done", "wait" if status == "awaiting_human" else "error", "todo", "todo"]
+    elif status == "blocked":
+        states = ["done", "done", "error"] + ["todo"] * (n - 3)
     elif status in ("failed", "interrupted"):
-        nxt = next((i for i, s in enumerate(states) if s == "todo"), 4)
+        nxt = next((i for i, s in enumerate(states) if s == "todo"), n - 1)
         states[nxt] = "error"
     elif status == "success":
-        states = ["done"] * 5
+        states = ["done"] * n
     return states
 
 
@@ -677,7 +687,7 @@ def findings_summary(crit: int, warn: int, info: int, explained: int) -> str:
 
 def agent_cards(items: list[tuple[int, str, str, str, str]]) -> str:
     """Résumé du travail de chaque agent : (numéro, agent, résultat principal, détail, état)."""
-    icons = {1: "search", 2: "activity", 3: "sparkles", 4: "star"}
+    icons = {1: "search", 2: "activity", 3: "sparkles", 4: "star", 5: "target", 6: "trend", 7: "layout"}
     cells = []
     for n, name, headline, detail, state in items:
         mark = icon("check", 18, 2.6) if state == "done" else icon(icons.get(n, "info"), 18)
@@ -782,6 +792,84 @@ def dumbbell(rows: list[tuple[str, float, float]]) -> str:
     return h(f'<div class="bf-star">{svg}</div>')
 
 
+# ---------------------------------------------------------------- partie 2 : KPI, analyse, dashboard
+SECTOR = {"commerce": "Commerce et e-commerce", "télécom": "Télécommunications", "banque": "Banque et finance",
+          "transport": "Transport et mobilité"}
+KPI_STATUS = {"validé": ("Validé", "ok"), "validé (humain)": ("Validé", "ok"), "à confirmer": ("À confirmer", "warn")}
+BINDING = {"évidente": "colonnes évidentes, choisies automatiquement", "LLM": "colonnes choisies par l'IA, puis vérifiées",
+           "proposée par l'agent": "KPI proposé par l'IA, calculé et testé"}
+RELIABILITY = {"fiable": "données fiables", "à surveiller": "quelques lignes signalées", "fragile": "beaucoup de lignes signalées"}
+INSIGHT_TYPE = {"alerte": ("Alerte", "crit"), "opportunité": ("Opportunité", "ok"), "constat": ("Constat", "info")}
+FACT_TYPE = {"tendance": "Tendance", "variation récente": "Variation récente", "sur un an": "Comparaison sur un an",
+             "anomalie": "Mois atypique", "rupture": "Changement de niveau", "segment": "Écart entre segments",
+             "contribution": "Explication d'une variation", "valeur": "Valeur globale"}
+CSS_BI = """<style>
+.bf-kpicard b.v { display:block; font-size:1.75rem; font-weight:800; letter-spacing:-.02em; margin:.15rem 0 .1rem;
+  font-variant-numeric: tabular-nums; color:#101A2C; }
+.bf-kpicard code, .bf-insight code { font-family: ui-monospace, Consolas, monospace; font-size:.76rem; background:#F4F6FA;
+  border:1px solid #E4E8EF; border-radius:8px; padding:.1rem .4rem; overflow-wrap:anywhere; }
+.bf-insight .reco { margin-top:.7rem; padding:.6rem .8rem; border-radius:12px; background:#EEF8F6; color:#00695F;
+  font-size:.9rem; line-height:1.5; }
+.bf-insight .reco b { color:#00695F; }
+.bf-dash { border:1px solid #E4E8EF; border-radius:20px; overflow:hidden; box-shadow:0 1px 2px rgba(16,26,44,.04),
+  0 8px 24px -12px rgba(16,26,44,.14); background:#fff; }
+.bf-now { display:flex; justify-content:flex-end; gap:.5rem; color:#5B6478; font-size:.82rem; font-weight:600; margin:.3rem .2rem 0; }
+.bf-now b { color:#101A2C; }
+/* assistant : bouton rond dans le coin + fenêtre de discussion juste au-dessus */
+.st-key-bf_chat_fab { position:fixed !important; right:26px; bottom:26px; z-index:10000; width:auto !important; }
+.st-key-bf_chat_fab button { width:60px !important; height:60px !important; min-height:60px !important; border-radius:50% !important;
+  padding:0 !important; border:none !important; color:#fff !important;
+  background: linear-gradient(145deg, #14B3A0, #00695F) !important; box-shadow: 0 14px 30px -10px rgba(0,105,95,.8) !important; }
+.st-key-bf_chat_fab button:hover { transform: translateY(-2px) scale(1.05) !important; }
+.st-key-bf_chat_fab button p { font-size:1.55rem !important; color:#fff !important; line-height:1 !important; }
+.st-key-bf_chat_panel { position:fixed !important; right:26px; bottom:100px; z-index:9999; width:min(420px, calc(100vw - 32px)) !important;
+  max-height:calc(100vh - 130px); overflow-y:auto; overflow-x:hidden; background:#fff; border:1px solid #E4E8EF; border-radius:22px;
+  box-shadow: 0 30px 60px -20px rgba(16,26,44,.45), 0 4px 12px rgba(16,26,44,.08); padding:0 14px 12px !important; gap:.55rem !important;
+  animation: bf-pop .18s ease-out; }
+@keyframes bf-pop { from { opacity:0; transform: translateY(12px) scale(.98); } to { opacity:1; transform:none; } }
+.st-key-bf_chat_panel [data-testid="stChatMessage"] { padding:.55rem .7rem; border-radius:14px; background:#F4F6FA; gap:.55rem; }
+.st-key-bf_chat_panel [data-testid="stChatMessage"] p, .st-key-bf_chat_panel [data-testid="stChatMessage"] li { font-size:.88rem; line-height:1.5; }
+.st-key-bf_chat_panel [data-testid="stChatInput"] { border-radius:14px; }
+.st-key-bf_chat_panel .stButton > button { min-height:2.1rem; padding:.35rem .8rem; font-size:.84rem; text-align:left;
+  justify-content:flex-start; border-radius:12px; font-weight:600; color:#00695F; background:#F2FAF8; border-color:#CBEAE4; }
+.st-key-bf_chat_panel [data-baseweb="select"] > div { min-height:2.2rem; }
+.bf-chat-top { margin:0 -14px .1rem; padding:16px 18px 14px; display:flex; gap:.75rem; align-items:center; color:#fff;
+  background: radial-gradient(240px 120px at 100% 0%, rgba(94,234,212,.35), transparent 70%), linear-gradient(135deg, #0E1A2E, #13303A); }
+.bf-chat-top i { flex:0 0 40px; height:40px; border-radius:13px; display:flex; align-items:center; justify-content:center;
+  background: linear-gradient(145deg, #14B3A0, #00897B); color:#fff; box-shadow: 0 8px 18px -8px #00897B; }
+.bf-chat-top b { display:block; font-size:1rem; font-weight:800; }
+.bf-chat-top span { display:flex; align-items:center; gap:.35rem; color:#AAB6C8; font-size:.8rem; }
+.bf-chat-top span::before { content:""; width:7px; height:7px; border-radius:50%; background:#5EEAD4; }
+.bf-chat-note { background:#F1F5FF; color:#2A3447; border-radius:14px; padding:.7rem .85rem; font-size:.86rem; line-height:1.5; }
+.bf-chat-q { display:flex; justify-content:flex-end; }
+.bf-chat-q div { max-width:85%; background: linear-gradient(145deg, #12A493, #00897B); color:#fff; padding:.55rem .85rem;
+  border-radius:16px 16px 4px 16px; font-size:.88rem; line-height:1.45; box-shadow: 0 6px 14px -8px #00897B; overflow-wrap:anywhere; }
+</style>"""
+
+
+def binding_label(source) -> str:
+    s = str(source or "")
+    return BINDING.get(s, "choisi par la règle de secours" if s.startswith("repli") else s)
+
+
+def kpi_card(name: str, value: str, status: str, definition: str, formula: str, how: str, reliability: str | None) -> str:
+    label, kind = KPI_STATUS.get(status, (status, "neutral"))
+    rel = RELIABILITY.get(str(reliability), "")
+    return (f'<div class="bf-card bf-kpicard"><div class="row"><h4>{esc(name)}</h4>{badge(label, kind)}</div>'
+            f'<b class="v">{esc(value)}</b><p>{esc(definition)}</p>'
+            f'<div class="meta">Calcul : <code>{esc(formula)}</code><br>{esc(how[0].upper() + how[1:] if how else "")}'
+            f'{" · " + esc(rel) if rel else ""}</div></div>')
+
+
+def insight_card(title: str, text: str, reco: str, kind: str, facts: list, source: str) -> str:
+    label, cls = INSIGHT_TYPE.get(kind, (kind, "neutral"))
+    who = "Rédigé par l'IA · chaque chiffre a été revérifié par le code" if source == "LLM" else \
+        "Rédigé automatiquement à partir des tests statistiques"
+    return (f'<div class="bf-card bf-insight"><div class="row"><h4>{esc(title)}</h4>{badge(label, cls)}</div>'
+            f'<p>{esc(text)}</p><div class="reco"><b>Recommandation :</b> {esc(reco)}</div>'
+            f'<div class="meta">{esc(who)} · sources : {esc(", ".join(facts))}</div></div>')
+
+
 UPLOAD_ICON = icon("upload", 30, 2)
 
 
@@ -790,3 +878,27 @@ def dropzone_header() -> str:
     return h(f'<div class="bf-drop"><div class="ico">{UPLOAD_ICON}</div><b>Glissez vos fichiers ici</b>'
              f'<span>un ou plusieurs fichiers d’un même jeu de données, ou un dossier compressé</span>'
              f'<div class="bf-formats">{formats}</div></div>')
+
+CSS += CSS_BI
+
+
+def chat_header(title: str, subtitle: str) -> str:
+    return h(f'<div class="bf-chat-top"><i>{icon("message", 20)}</i><div><b>{esc(title)}</b>'
+             f'<span>{esc(subtitle)}</span></div></div>')
+
+
+def chat_note(text: str) -> str:
+    return h(f'<div class="bf-chat-note">{esc(text)}</div>')
+
+
+def chat_bubble(text: str) -> str:
+    """Question de l'utilisateur, à droite."""
+    return h(f'<div class="bf-chat-q"><div>{esc(text)}</div></div>')
+
+
+def now_line(cell: str | None, elapsed: int | None) -> str:
+    """Ce que fait le pipeline en ce moment (rassure pendant les longs appels au LLM)."""
+    if not cell:
+        return ""
+    m, s = divmod(int(elapsed or 0), 60)
+    return h(f'<div class="bf-now">En ce moment : <b>{esc(cell)}</b> · {m} min {s:02d} s écoulées</div>')

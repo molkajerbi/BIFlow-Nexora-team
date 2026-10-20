@@ -1,0 +1,22 @@
+table,colonne,type
+sample_superstore,Row ID,id
+sample_superstore,Order ID,id
+sample_superstore,Order Date,datetime
+sample_superstore,Ship Date,datetime
+sample_superstore,Ship Mode,category
+sample_superstore,Customer ID,id
+sample_superstore,Customer Name,category
+sample_superstore,Segment,category
+sample_superstore,Country,category
+sample_superstore,City,category
+sample_superstore,State,category
+sample_superstore,Postal Code,zip
+sample_superstore,Region,category
+sample_superstore,Product ID,id
+sample_superstore,Category,category
+sample_superstore,Sub-Category,category
+sample_superstore,Product Name,category
+sample_superstore,Sales,numeric
+sample_superstore,Quantity,integer
+sample_superstore,Discount,numeric
+sample_superstore,Profit,numeric

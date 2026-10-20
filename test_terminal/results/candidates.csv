@@ -1,0 +1,3 @@
+id,correction,table,colonne,règle,violations,statut,justification,décidé_par
+K1,strip_whitespace,sample_superstore,Product Name,FMT_sample_superstore.Product Name,16,proposé,Retire les espaces inutiles sans altérer la signification des noms des produits.,agent
+K2,cap_outliers,sample_superstore,Sales,OUT_sample_superstore.Sales,3,proposé,Ramène les valeurs extrêmes à des limites raisonnables sans perdre d'informations pertinentes.,agent

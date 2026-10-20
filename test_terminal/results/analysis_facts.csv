@@ -1,0 +1,52 @@
+id,kpi,label,type,texte,priority,valence,sens
+F01,COM_REVENUE,Chiffre d'affaires,valeur,"Chiffre d'affaires : 2 292 964,65 sur l'ensemble des données.",0.0,neutre,
+F02,GEN_TOP_CATEGORY_SHARE,Part du premier groupe : category,valeur,"Part du premier groupe : category : 60,3 % sur l'ensemble des données.",0.0,neutre,
+F03,GEN_DQ_FLAGGED,Part des enregistrements signalés par la qualité,valeur,"Part des enregistrements signalés par la qualité : 0,0 % sur l'ensemble des données.",0.0,neutre,
+F04,COM_ORDERS,Nombre de commandes,valeur,Nombre de commandes : 5 009 sur l'ensemble des données.,0.0,neutre,
+F05,COM_CUSTOMERS,Clients acheteurs,valeur,Clients acheteurs : 793 sur l'ensemble des données.,0.0,neutre,
+F06,COM_UNITS_PER_ORDER,Unités par commande,valeur,"Unités par commande : 7,56 sur l'ensemble des données.",0.0,neutre,
+F07,COM_REPEAT_RATE,Taux de clients récurrents,valeur,"Taux de clients récurrents : 98,5 % sur l'ensemble des données.",0.0,neutre,
+F08,COM_ITEMS_PER_ORDER,Articles par commande,valeur,"Articles par commande : 2,00 sur l'ensemble des données.",0.0,neutre,
+F09,GEN_VOLUME_GROWTH,Volume mensuel (nombre d'enregistrements),valeur,"Évolution du volume : 0,7 % sur l'ensemble des données.",0.0,neutre,
+F10,COM_AVG_DISCOUNT,Remise moyenne,valeur,"Remise moyenne : 0,16 sur l'ensemble des données.",0.0,neutre,
+F11,COM_AOV,Panier moyen,valeur,"Panier moyen : 457,77 sur l'ensemble des données.",0.0,neutre,
+F12,COM_DELIVERY_TIME,Délai de livraison moyen,valeur,"Délai de livraison moyen : 4,0 j sur l'ensemble des données.",0.0,neutre,
+F13,COM_PROFIT,Bénéfice total,valeur,"Bénéfice total : 286 397,02 sur l'ensemble des données.",0.0,neutre,
+F14,COM_LOSS_SHARE,Part des ventes à perte,valeur,"Part des ventes à perte : 18,7 % sur l'ensemble des données.",0.0,neutre,
+F15,COM_MARGIN_RATE,Taux de marge,valeur,"Taux de marge : 12,5 % sur l'ensemble des données.",0.0,neutre,
+F16,COM_REVENUE_PER_CUSTOMER,Chiffre d'affaires par client,valeur,"Chiffre d'affaires par client : 2 891,51 sur l'ensemble des données.",0.0,neutre,
+F17,GEN_CONCENTRATION,Part des 20 % premiers customer id : sales,valeur,"Part des 20 % premiers customer id : sales : 48,1 % sur l'ensemble des données.",0.0,neutre,
+F18,GEN_GROWTH,Évolution mensuelle : sales,valeur,"Évolution mensuelle : sales : -29,2 % sur l'ensemble des données.",0.0,neutre,
+F19,COM_INSTALLMENTS,Nombre moyen d'échéances de paiement,valeur,"Nombre moyen d'échéances de paiement : 3,79 sur l'ensemble des données.",0.0,neutre,
+F20,AGT_01,Taux de satisfaction client,valeur,"Taux de satisfaction client : 32,3 % sur l'ensemble des données.",0.0,neutre,
+F21,COM_REVENUE,Chiffre d'affaires,tendance,"Chiffre d'affaires : tendance à la hausse sur 48 mois (janvier 2014 → décembre 2017) : 24 815,93 en moyenne sur les 3 premiers mois, 93 351,36 sur les 3 derniers (+276,2 %).",0.9734,favorable,hausse
+F22,COM_REVENUE,Chiffre d'affaires,sur un an,"Chiffre d'affaires : 93 351,36 de octobre 2017 à décembre 2017, contre 78 699,58 sur les mêmes mois un an plus tôt (+18,6 %).",0.145,favorable,hausse
+F23,COM_ORDERS,Nombre de commandes,tendance,"Nombre de commandes : tendance à la hausse sur 48 mois (janvier 2014 → décembre 2017) : 44 en moyenne sur les 3 premiers mois, 211 sur les 3 derniers (+382,4 %).",0.971,favorable,hausse
+F24,COM_ORDERS,Nombre de commandes,sur un an,"Nombre de commandes : 211 de octobre 2017 à décembre 2017, contre 155 sur les mêmes mois un an plus tôt (+36,2 %).",0.2813,favorable,hausse
+F25,COM_UNITS_PER_ORDER,Unités par commande,anomalie,"Unités par commande : valeur atypique en février 2014 : 5,68 contre 8,24 attendu d'après les mois voisins (−31,1 %).",0.1598,défavorable,baisse
+F26,COM_AOV,Panier moyen,sur un an,"Panier moyen : 452,39 de octobre 2017 à décembre 2017, contre 517,84 sur les mêmes mois un an plus tôt (−12,6 %).",0.0965,défavorable,baisse
+F27,COM_AOV,Panier moyen,anomalie,"Panier moyen : valeur atypique en mars 2014 : 784,38 contre 385,72 attendu d'après les mois voisins (+103,4 %).",0.5051,favorable,hausse
+F28,COM_PROFIT,Bénéfice total,tendance,"Bénéfice total : tendance à la hausse sur 48 mois (janvier 2014 → décembre 2017) : 1 270,41 en moyenne sur les 3 premiers mois, 9 149,58 sur les 3 derniers (+620,2 %).",0.9487,favorable,hausse
+F29,COM_PROFIT,Bénéfice total,sur un an,"Bénéfice total : 9 149,58 de octobre 2017 à décembre 2017, contre 12 713,29 sur les mêmes mois un an plus tôt (−28,0 %).",0.213,défavorable,baisse
+F30,COM_LOSS_SHARE,Part des ventes à perte,sur un an,"Part des ventes à perte : 20,2 % de octobre 2017 à décembre 2017, contre 17,3 % sur les mêmes mois un an plus tôt (+16,7 %, soit +2,9 pt).",0.1266,défavorable,hausse
+F31,COM_MARGIN_RATE,Taux de marge,sur un an,"Taux de marge : 10,1 % de octobre 2017 à décembre 2017, contre 16,9 % sur les mêmes mois un an plus tôt (−40,4 %, soit −6,8 pt).",0.3061,défavorable,baisse
+F32,COM_MARGIN_RATE,Taux de marge,anomalie,"Taux de marge : valeur atypique en janvier 2015 : -18,1 % contre 18,2 % attendu d'après les mois voisins (−199,0 %, soit −36,3 pt).",0.6985,défavorable,baisse
+F33,COM_REVENUE_PER_CUSTOMER,Chiffre d'affaires par client,sur un an,"Chiffre d'affaires par client : 516,72 de octobre 2017 à décembre 2017, contre 575,80 sur les mêmes mois un an plus tôt (−10,3 %).",0.0777,défavorable,baisse
+F34,COM_REVENUE_PER_CUSTOMER,Chiffre d'affaires par client,anomalie,"Chiffre d'affaires par client : valeur atypique en mars 2014 : 807,12 contre 397,54 attendu d'après les mois voisins (+103,0 %).",0.4814,favorable,hausse
+F35,AGT_01,Taux de satisfaction client,tendance,"Taux de satisfaction client : tendance à la hausse sur 48 mois (janvier 2014 → décembre 2017) : 25,9 % en moyenne sur les 3 premiers mois, 34,1 % sur les 3 derniers (+31,7 %, soit +8,2 pt).",0.1876,favorable,hausse
+F36,GEN_VOLUME_GROWTH,Volume mensuel (nombre d'enregistrements),tendance,"Volume mensuel (nombre d'enregistrements) : tendance à la hausse sur 48 mois (janvier 2014 → décembre 2017) : 94 en moyenne sur les 3 premiers mois, 406 sur les 3 derniers (+332,3 %).",0.959,favorable,hausse
+F37,GEN_VOLUME_GROWTH,Volume mensuel (nombre d'enregistrements),sur un an,"Volume mensuel (nombre d'enregistrements) : 406 de octobre 2017 à décembre 2017, contre 306 sur les mêmes mois un an plus tôt (+32,8 %).",0.2516,favorable,hausse
+F38,COM_REVENUE,Chiffre d'affaires,segment,"Chiffre d'affaires par Ship Mode : « Standard Class » pèse 59,2 % du total, les 3 premiers segments 94,4 % (4 segments).",0.4666,neutre,
+F39,COM_UNITS_PER_ORDER,Unités par commande,segment,"Unités par commande par Category : de 4,49 (« Technology ») à 6,12 (« Office Supplies ») pour une moyenne de 5,37 ; 3 segments d'au moins 30 lignes.",0.1285,neutre,
+F40,COM_ITEMS_PER_ORDER,Articles par commande,segment,"Articles par commande par Category : de 1,20 (« Technology ») à 1,61 (« Office Supplies ») pour une moyenne de 1,42 ; 3 segments d'au moins 30 lignes.",0.1248,neutre,
+F41,COM_AVG_DISCOUNT,Remise moyenne,segment,"Remise moyenne par State : de 0,00 (« Wisconsin ») à 0,39 (« Illinois ») pour une moyenne de 0,16 ; 38 segments d'au moins 30 lignes.",0.8103,neutre,
+F42,COM_AOV,Panier moyen,segment,"Panier moyen par Sub-Category : de 14,07 (« Fasteners ») à 2 198,94 (« Copiers ») pour une moyenne de 250,35 ; 17 segments d'au moins 30 lignes.",0.8586,neutre,
+F43,COM_DELIVERY_TIME,Délai de livraison moyen,segment,"Délai de livraison moyen par Ship Mode : de 0,0 j (« Same Day ») à 5,0 j (« Standard Class ») pour une moyenne de 4,0 j ; 4 segments d'au moins 30 lignes.",0.3124,neutre,
+F44,COM_PROFIT,Bénéfice total,segment,"Bénéfice total par Ship Mode : « Standard Class » pèse 57,3 % du total, les 3 premiers segments 94,5 % (4 segments).",0.4295,neutre,
+F45,COM_LOSS_SHARE,Part des ventes à perte,segment,"Part des ventes à perte par State : de 0,0 % (« Wisconsin ») à 51,8 % (« Illinois ») pour une moyenne de 18,7 % ; 38 segments d'au moins 30 lignes.",0.8546,défavorable,
+F46,COM_MARGIN_RATE,Taux de marge,segment,"Taux de marge par State : de -21,7 % (« Ohio ») à 36,3 % (« Delaware ») pour une moyenne de 12,5 % ; 38 segments d'au moins 30 lignes.",0.8528,défavorable,
+F47,COM_REVENUE_PER_CUSTOMER,Chiffre d'affaires par client,segment,"Chiffre d'affaires par client par Sub-Category : de 15,83 (« Fasteners ») à 2 336,38 (« Copiers ») pour une moyenne de 382,03 ; 17 segments d'au moins 30 lignes.",0.833,neutre,
+F48,AGT_01,Taux de satisfaction client,segment,"Taux de satisfaction client par Ship Mode : de 0,0 % (« Standard Class ») à 100,0 % (« Same Day ») pour une moyenne de 32,3 % ; 4 segments d'au moins 30 lignes.",0.54,défavorable,
+F49,COM_REVENUE,Chiffre d'affaires,contribution,"Chiffre d'affaires : entre janvier 2014–mars 2014 et octobre 2017–décembre 2017, le segment Region = « East » explique à lui seul 44,5 % de la variation totale (en moyenne mensuelle, ce segment passe de 2 193,11 à 32 674,42).",0.9247,favorable,hausse
+F50,GEN_VOLUME_GROWTH,Volume mensuel (nombre d'enregistrements),contribution,"Volume mensuel (nombre d'enregistrements) : entre janvier 2014–mars 2014 et octobre 2017–décembre 2017, le segment Region = « West » explique à lui seul 33,9 % de la variation totale (en moyenne mensuelle, ce segment passe de 25 à 131).",0.911,favorable,hausse
+F51,COM_PROFIT,Bénéfice total,contribution,"Bénéfice total : entre janvier 2014–mars 2014 et octobre 2017–décembre 2017, le segment Region = « East » explique à lui seul 89,0 % de la variation totale (en moyenne mensuelle, ce segment passe de -261,93 à 6 751,08).",0.9013,favorable,hausse
