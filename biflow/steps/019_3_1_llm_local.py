@@ -10,7 +10,7 @@ LLM_MODEL_ID = "Qwen/Qwen2.5-7B-Instruct"   # 7B sur "GPU T4 x2" ; sinon "Qwen/Q
 
 
 class LocalLLM:
-    """LLM open-source exécuté localement sur le GPU : aucune donnée n'est envoyée à une API externe."""
+    """Open-source LLM running locally on the GPU: no data is sent to an external API."""
 
     def __init__(self, model_id: str):
         self.model_id = model_id
@@ -31,7 +31,7 @@ class LocalLLM:
         return self.tokenizer.decode(output[0, inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
 
 
-assert torch.cuda.is_available(), "Activez un GPU (Settings > Accelerator > GPU T4 x2) et Internet."
+assert torch.cuda.is_available(), "Enable a GPU (Settings > Accelerator > GPU T4 x2) and Internet."
 
 # Si la cellule est relancée, on libère d'abord l'ancien modèle (sinon il est chargé deux fois)
 if "LLM" in globals():
@@ -41,11 +41,11 @@ if "LLM" in globals():
 
 t0 = time.perf_counter()
 LLM = LocalLLM(LLM_MODEL_ID)
-gpu_memory = {f"GPU {i}": f"{torch.cuda.memory_allocated(i) / 1e9:.1f} Go" for i in range(torch.cuda.device_count())}
+gpu_memory = {f"GPU {i}": f"{torch.cuda.memory_allocated(i) / 1e9:.1f} GB" for i in range(torch.cuda.device_count())}
 AUDIT.log("orchestrator", "llm_loaded", {
     "model": LLM_MODEL_ID, "gpu": f"{torch.cuda.device_count()} x {torch.cuda.get_device_name(0)}",
     "gpu_memory": gpu_memory, "load_seconds": round(time.perf_counter() - t0, 1),
     "torch": torch.__version__, "transformers": transformers.__version__, "decoding": "greedy (do_sample=False)"})
-print(f"{LLM_MODEL_ID} chargé sur {torch.cuda.device_count()} × {torch.cuda.get_device_name(0)} en {time.perf_counter() - t0:.0f} s")
-print(f"Mémoire utilisée : {gpu_memory}")
-print(LLM.chat([{"role": "user", "content": "En une phrase : pourquoi une valeur manquante n'est-elle pas toujours une erreur ?"}], 60))
+print(f"{LLM_MODEL_ID} loaded on {torch.cuda.device_count()} × {torch.cuda.get_device_name(0)} in {time.perf_counter() - t0:.0f} s")
+print(f"Memory used: {gpu_memory}")
+print(LLM.chat([{"role": "user", "content": "In one sentence: why is a missing value not always an error?"}], 60))

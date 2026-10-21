@@ -24,7 +24,7 @@ MODEL_EXTENSIONS = {".safetensors", ".bin", ".gguf", ".pt", ".pth", ".onnx", ".h
 
 
 def dataset_root(path: Path, root: Path) -> Path:
-    """Racine du dataset qui contient `path` (gère /kaggle/input/<nom> et /kaggle/input/datasets/<auteur>/<nom>)."""
+    """Root of the dataset containing `path` (handles /kaggle/input/<name> and /kaggle/input/datasets/<author>/<name>)."""
     parts = path.relative_to(root).parts
     if len(parts) == 1:
         return root
@@ -36,7 +36,7 @@ def dataset_root(path: Path, root: Path) -> Path:
 
 
 def list_data_files(folder: Path) -> list[Path]:
-    """Tous les fichiers de données d'un dossier (récursif), hors dossiers de modèles d'IA."""
+    """All data files of a folder (recursive), excluding AI model folders."""
     files = [p for p in folder.rglob("*") if p.is_file() and p.suffix.lower() in DATA_EXTENSIONS
              and not p.name.startswith(".")]
     model_dirs = {p.parent for p in folder.rglob("*") if p.suffix.lower() in MODEL_EXTENSIONS}
@@ -44,14 +44,14 @@ def list_data_files(folder: Path) -> list[Path]:
 
 
 def find_data_dir() -> Path:
-    """Trouve LE dataset fourni en entrée (Kaggle ou local). Zéro ou plusieurs datasets : arrêt explicite."""
+    """Finds THE input dataset (Kaggle or local). Zero or several datasets: explicit stop."""
     explicit = os.environ.get("BIFLOW_DATA_DIR")
     roots = [Path(explicit)] if explicit else [Path("/kaggle/input"), Path("./data")]
     found = {dataset_root(p, root) for root in roots if root.exists() for p in list_data_files(root)}
     if len(found) != 1:
         raise FileNotFoundError(
-            f"{len(found)} dataset(s) trouvé(s) : {sorted(map(str, found))}. "
-            "Attachez UN seul dataset (CSV, Excel, Parquet ou JSON), ou définissez BIFLOW_DATA_DIR.")
+            f"{len(found)} dataset(s) found: {sorted(map(str, found))}. "
+            "Attach exactly ONE dataset (CSV, Excel, Parquet or JSON), or set BIFLOW_DATA_DIR.")
     return found.pop()
 
 
@@ -73,8 +73,8 @@ RUN_ID = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "_" + uuid.uuid
 RUN_DIR = CONFIG.output_root / RUN_ID
 RUN_DIR.mkdir(parents=True, exist_ok=False)   # une exécution n'écrase jamais une autre
 
-print(f"Données   : {CONFIG.data_dir} ({len(list_data_files(CONFIG.data_dir))} fichier(s))")
-print("Mode      : 100 % automatique (aucune validation humaine)")
+print(f"Data      : {CONFIG.data_dir} ({len(list_data_files(CONFIG.data_dir))} file(s))")
+print("Mode      : 100% automatic (no human validation)")
 print(f"Run ID    : {RUN_ID}")
-print(f"Sorties   : {RUN_DIR}")
+print(f"Outputs   : {RUN_DIR}")
 print(f"Python {platform.python_version()} · pandas {pd.__version__} · numpy {np.__version__}")

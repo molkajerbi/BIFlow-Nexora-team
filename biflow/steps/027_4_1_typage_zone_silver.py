@@ -1,5 +1,5 @@
 def convert_types(table: str) -> tuple[pd.DataFrame, list[dict], pd.DataFrame]:
-    """Convertit chaque colonne selon son type sémantique. Une valeur non convertible devient NA et est tracée."""
+    """Converts each column according to its semantic type. A value that cannot be converted becomes NA and is traced."""
     df = RAW.get(table)
     report, failures = [], []
     for col, sem in DATA_CONTRACT[table]["columns"].items():
@@ -35,5 +35,5 @@ TYPE_FAILURES = pd.concat(type_failures, ignore_index=True)
 AUDIT.log("quality_agent", "types_converted",
           {"columns": len(TYPE_REPORT), "failed_values": int(TYPE_REPORT["failed"].sum()),
            "dtypes": TYPE_REPORT.groupby("dtype").size().to_dict()})
-print(f"{len(TYPE_REPORT)} colonnes typées · {int(TYPE_REPORT['failed'].sum())} valeur(s) non convertible(s)")
-TYPE_REPORT.groupby(["semantic_type", "dtype"]).agg(colonnes=("column", "size"), echecs=("failed", "sum"))
+print(f"{len(TYPE_REPORT)} typed columns · {int(TYPE_REPORT['failed'].sum())} value(s) that could not be converted")
+TYPE_REPORT.groupby(["semantic_type", "dtype"]).agg(columns=("column", "size"), failures=("failed", "sum"))

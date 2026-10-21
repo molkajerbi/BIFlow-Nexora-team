@@ -1,5 +1,5 @@
 @audited(agent="profiler",
-         description="Vérifie les relations déclarées (orphelins, couverture, cardinalité) et découvre les relations non déclarées par inclusion de valeurs.")
+         description="Checks the declared relationships (orphans, coverage, cardinality) and discovers undeclared relationships through value inclusion.")
 def discover_relationships(min_inclusion: float = 0.95, min_overlap: int = 10) -> ToolResult:
     # 1) Ensemble des valeurs distinctes de chaque colonne clé potentielle (id, zip, category)
     values, unique_cols = {}, set()
@@ -21,7 +21,7 @@ def discover_relationships(min_inclusion: float = 0.95, min_overlap: int = 10) -
         orphan = ~present.isin(parent_vals)
         per_parent = present.value_counts()
         rows.append({
-            "relation": f"{ch}.{fk} → {pa}.{pk}", "origin": "déclarée",
+            "relation": f"{ch}.{fk} → {pa}.{pk}", "origin": "declared",
             "child_rows": len(child), "null_fk": int(child.isna().sum()),
             "orphan_rows": int(orphan.sum()), "orphan_distinct": int(present[orphan].nunique()),
             "orphan_examples": present[orphan].unique()[:3].tolist(),
@@ -29,7 +29,7 @@ def discover_relationships(min_inclusion: float = 0.95, min_overlap: int = 10) -
             "parent_coverage_pct": round(100 * len(set(per_parent.index) & parent_vals) / max(len(parent_vals), 1), 2),
             "max_children_per_parent": int(per_parent.max()) if len(per_parent) else 0,
             "parent_key_unique": (pa, pk) in unique_cols,
-            "status": "respectée" if orphan.sum() == 0 else "violée",
+            "status": "respected" if orphan.sum() == 0 else "violated",
         })
 
     # 3) Découverte : colonne A incluse dans une colonne B unique (clé) d'une autre table, même type sémantique
@@ -47,13 +47,13 @@ def discover_relationships(min_inclusion: float = 0.95, min_overlap: int = 10) -
             if inclusion >= min_inclusion and overlap >= min_overlap:
                 one_to_one = (ct, cc) in unique_cols and len(pvals) and overlap / len(pvals) >= min_inclusion
                 rows.append({
-                    "relation": f"{ct}.{cc} → {pt}.{pc}", "origin": "découverte",
+                    "relation": f"{ct}.{cc} → {pt}.{pc}", "origin": "discovered",
                     "child_rows": None, "null_fk": None, "orphan_rows": None, "orphan_distinct": len(cvals) - overlap,
                     "orphan_examples": [], "inclusion_pct": round(100 * inclusion, 2),
                     "parent_coverage_pct": round(100 * overlap / len(pvals), 2),
                     "max_children_per_parent": 1 if (ct, cc) in unique_cols else None,
                     "parent_key_unique": True,
-                    "status": "relation 1:1" if one_to_one else "candidate",
+                    "status": "1:1 relationship" if one_to_one else "candidate",
                 })
 
     columns = ["relation", "origin", "child_rows", "null_fk", "orphan_rows", "orphan_distinct", "orphan_examples",
@@ -61,13 +61,13 @@ def discover_relationships(min_inclusion: float = 0.95, min_overlap: int = 10) -
     details = pd.DataFrame(rows, columns=columns).sort_values(["origin", "relation"]).reset_index(drop=True)
     for c in ["child_rows", "null_fk", "orphan_rows", "max_children_per_parent"]:
         details[c] = details[c].astype("Int64")
-    d = details[details["origin"] == "déclarée"]
+    d = details[details["origin"] == "declared"]
     summary = {
-        "declared": len(d), "respected": int((d["status"] == "respectée").sum()),
+        "declared": len(d), "respected": int((d["status"] == "respected").sum()),
         "violated": {r.relation: {"orphan_rows": int(r.orphan_rows), "orphan_distinct": int(r.orphan_distinct)}
-                     for r in d.itertuples() if r.status == "violée"},
+                     for r in d.itertuples() if r.status == "violated"},
         "parent_key_not_unique": d.loc[~d["parent_key_unique"], "relation"].tolist(),
-        "discovered": details.loc[details["origin"] == "découverte", ["relation", "status"]].to_dict(orient="records"),
+        "discovered": details.loc[details["origin"] == "discovered", ["relation", "status"]].to_dict(orient="records"),
     }
     return ToolResult(summary, details)
 

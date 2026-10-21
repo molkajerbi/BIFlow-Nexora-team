@@ -4,7 +4,7 @@ import inspect
 
 @dataclass
 class ToolResult:
-    """Résultat standard d'un outil : un résumé compact (pour le LLM et l'audit) + un détail tabulaire."""
+    """Standard result of a tool: a compact summary (for the LLM and the audit) + a tabular detail."""
     summary: dict
     details: pd.DataFrame | None = None
 
@@ -14,7 +14,7 @@ TOOL_RESULTS: dict[str, ToolResult] = {}   # derniers résultats, clé "outil:ta
 
 
 def audited(agent: str, description: str, read_only: bool = True):
-    """Enregistre l'outil dans le catalogue et trace automatiquement chaque appel dans l'audit."""
+    """Registers the tool in the catalog and automatically traces every call in the audit log."""
     def decorator(fn):
         signature = inspect.signature(fn)
 
@@ -44,8 +44,8 @@ def audited(agent: str, description: str, read_only: bool = True):
 
 # Validateurs par type sémantique : renvoient True si une valeur (non manquante) est conforme
 def _to_float(s: pd.Series) -> pd.Series:
-    """Texte -> nombre. Seules les valeurs qui ONT la forme d'un nombre sont converties (le reste devient NaN).
-    Les écritures « 1 234,5 », « 1,234.5 », « 12 € » ou « 15 % » sont gérées grâce au contrat."""
+    """Text -> number. Only values that LOOK like a number are converted (the rest becomes NaN).
+    Notations such as "1 234,5", "1,234.5", "12 €" or "15 %" are handled thanks to the contract."""
     s = clean_number_text(s.astype("string"), NUMBER_FORMATS.get(s.name))
     ok = s.str.fullmatch(NUMBER_PATTERN, na=False).to_numpy(dtype=bool)
     out = np.full(len(s), np.nan)
@@ -64,7 +64,7 @@ def _valid_integer(s):
 
 
 def dt_format(table: str, column: str) -> str:
-    """Format de date de la colonne (inféré en mode auto), sinon le format par défaut du dataset."""
+    """Date format of the column (inferred in auto mode), otherwise the dataset default format."""
     return DATETIME_FORMATS.get(f"{table}.{column}", DATETIME_FORMAT)
 
 
@@ -73,7 +73,7 @@ def _valid_datetime(s, fmt: str | None = None):
 
 
 def raw_column(table: str, column: str) -> pd.Series:
-    """Copie d'une seule colonne brute (évite de copier toute la table, ex. geolocation = 1 M lignes)."""
+    """Copy of a single raw column (avoids copying the whole table, e.g. geolocation = 1M rows)."""
     return RAW._tables[table][column].copy()
 
 
@@ -88,4 +88,4 @@ SEMANTIC_VALIDATORS = {
     "text":     lambda s: pd.Series(True, index=s.index),
 }
 
-print(f"{len(SEMANTIC_VALIDATORS)} validateurs sémantiques prêts")
+print(f"{len(SEMANTIC_VALIDATORS)} semantic validators ready")

@@ -7,11 +7,11 @@ def file_sha256(path: Path, chunk_size: int = 1 << 20) -> str:
 
 
 class ContractViolation(Exception):
-    """Erreur bloquante : les données ne respectent pas le contrat."""
+    """Blocking error: the data does not comply with the contract."""
 
 
 class RawStore:
-    """Zone 'bronze' : données brutes immuables. Toute lecture renvoie une copie."""
+    """'Bronze' zone: immutable raw data. Every read returns a copy."""
 
     def __init__(self):
         self._tables: dict[str, pd.DataFrame] = {}
@@ -19,7 +19,7 @@ class RawStore:
 
     def add(self, name: str, df: pd.DataFrame, meta: dict) -> None:
         if name in self._tables:
-            raise ValueError(f"La table '{name}' est déjà chargée (les données brutes sont immuables).")
+            raise ValueError(f"Table '{name}' is already loaded (raw data is immutable).")
         self._tables[name] = df
         self.manifest[name] = meta
 
@@ -31,7 +31,7 @@ class RawStore:
         return list(self._tables)
 
     def fingerprint(self, name: str) -> str:
-        """Hash du contenu en mémoire : permet de prouver plus tard qu'il n'a pas changé."""
+        """Hash of the in-memory content: proves later that it did not change."""
         return hashlib.sha256(
             pd.util.hash_pandas_object(self._tables[name], index=True).values.tobytes()
         ).hexdigest()
@@ -40,7 +40,7 @@ class RawStore:
 def ingest_table(name: str, spec: dict, data_dir: Path, audit: AuditTrail) -> tuple[pd.DataFrame, dict]:
     path = data_dir / spec["file"]
     if not path.exists():
-        raise ContractViolation(f"{name} : fichier introuvable {path}")
+        raise ContractViolation(f"{name}: file not found {path}")
 
     t0 = time.perf_counter()
     df = read_table(path, spec)                    # même lecteur que l'inférence : tout en texte
@@ -50,7 +50,7 @@ def ingest_table(name: str, spec: dict, data_dir: Path, audit: AuditTrail) -> tu
     missing, unexpected = sorted(expected - found), sorted(found - expected)
     if missing:
         audit.log("ingestion", "contract_violation", {"table": name, "missing_columns": missing}, level="ERROR")
-        raise ContractViolation(f"{name} : colonnes obligatoires absentes {missing}")
+        raise ContractViolation(f"{name}: required columns missing {missing}")
     if unexpected:
         audit.log("ingestion", "unexpected_columns", {"table": name, "columns": unexpected}, level="WARNING")
 
@@ -80,5 +80,5 @@ RAW_FINGERPRINTS = {name: RAW.fingerprint(name) for name in RAW.names}
 ingestion_report = (pd.DataFrame(RAW.manifest).T
                     .assign(sha256=lambda d: d["sha256"].str[:16] + "…")
                     .drop(columns=["file"]))
-print(f"{len(RAW.names)} tables chargées · {int(ingestion_report['rows'].sum()):,} lignes au total".replace(",", " "))
+print(f"{len(RAW.names)} tables loaded · {int(ingestion_report['rows'].sum()):,} rows in total")
 ingestion_report

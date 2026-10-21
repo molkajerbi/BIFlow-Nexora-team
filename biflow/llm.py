@@ -45,11 +45,11 @@ class OllamaLLM:
         try:
             tags = requests.get(f"{self.url}/api/tags", timeout=10).json()
         except requests.RequestException as exc:
-            raise LLMUnavailable(f"Ollama ne répond pas sur {self.url} : lancez l'application Ollama. ({exc})") from exc
+            raise LLMUnavailable(f"Ollama is not responding on {self.url}: open the Ollama app. ({exc})") from exc
         names = {m["name"] for m in tags.get("models", [])}
         if self.model_id not in names and f"{self.model_id}:latest" not in names:
-            raise LLMUnavailable(f"Modèle '{self.model_id}' absent d'Ollama : exécutez « ollama pull {self.model_id} ». "
-                                 f"Modèles disponibles : {sorted(names) or 'aucun'}")
+            raise LLMUnavailable(f"Model '{self.model_id}' is not in Ollama: run \"ollama pull {self.model_id}\". "
+                                 f"Available models: {sorted(names) or 'none'}")
 
     def _key(self, messages: list[dict], max_new_tokens: int) -> str:
         payload = json.dumps([self.model_id, messages, max_new_tokens], sort_keys=True, ensure_ascii=False)
@@ -57,7 +57,7 @@ class OllamaLLM:
 
     def chat(self, messages: list[dict], max_new_tokens: int = 256) -> str:
         if self.disabled:
-            raise LLMUnavailable("appel LLM désactivé à ce stade du pipeline")
+            raise LLMUnavailable("LLM call disabled at this stage of the pipeline")
         key = self._key(messages, max_new_tokens)
         if key in self._cache:
             self.cache_hits += 1
@@ -69,7 +69,7 @@ class OllamaLLM:
                 "options": {"temperature": 0, "seed": 42, "num_predict": max_new_tokens, "num_ctx": self.num_ctx}})
             r.raise_for_status()
         except requests.RequestException as exc:
-            raise LLMUnavailable(f"échec de l'appel à Ollama ({self.model_id}) : {exc}") from exc
+            raise LLMUnavailable(f"Ollama call failed ({self.model_id}): {exc}") from exc
         response = r.json()["message"]["content"].strip()
         self.calls += 1
         self._cache[key] = response

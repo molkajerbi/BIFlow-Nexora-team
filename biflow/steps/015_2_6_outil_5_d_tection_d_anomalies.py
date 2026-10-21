@@ -2,13 +2,13 @@ from sklearn.ensemble import IsolationForest
 
 
 @audited(agent="profiler",
-         description="Détecte les valeurs anormales : règle IQR par colonne et Isolation Forest multivarié, avec la variable responsable de chaque anomalie.")
+         description="Detects abnormal values: IQR rule per column and multivariate Isolation Forest, with the variable responsible for each anomaly.")
 def detect_anomalies(table: str, contamination: float = 0.01, top_n: int = 10) -> ToolResult:
     df = RAW.get(table)
     spec, grain = DATA_CONTRACT[table]["columns"], DATA_CONTRACT[table]["grain"] or []
     num_cols = [c for c, sem in spec.items() if sem in {"numeric", "integer"} and c not in grain]
     if not num_cols:
-        return ToolResult({"table": table, "numeric_columns": [], "note": "aucune mesure numérique"})
+        return ToolResult({"table": table, "numeric_columns": [], "note": "no numeric measure"})
 
     X = pd.DataFrame({c: _to_float(df[c]) for c in num_cols})
 
@@ -49,7 +49,7 @@ def detect_anomalies(table: str, contamination: float = 0.01, top_n: int = 10) -
         if_flag = pd.Series(False, index=df.index)
         score = robust_z.max(axis=1)
 
-    method = np.select([if_flag & iqr_flag, if_flag, iqr_flag], ["IF + IQR", "Isolation Forest", "IQR extrême"], "")
+    method = np.select([if_flag & iqr_flag, if_flag, iqr_flag], ["IF + IQR", "Isolation Forest", "Extreme IQR"], "")
     flagged = if_flag | iqr_flag
     details = (df.loc[flagged, ["_source_row_id"]]
                .assign(method=method[flagged], score=score[flagged].round(3),
@@ -70,5 +70,5 @@ ano = detect_anomalies(DEMO["anomalies"])
 if hasattr(ano, "iqr"):
     display(ano.iqr)
 else:
-    print("Aucune mesure numérique dans ce dataset : pas d'anomalie numérique à rechercher.")
+    print("No numeric measure in this dataset: no numeric anomaly to look for.")
 ano.details

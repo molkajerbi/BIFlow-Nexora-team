@@ -12,8 +12,8 @@ LLM_LOG = RUN_DIR / "llm_calls.jsonl"      # échanges complets avec le LLM (pro
 
 
 def free_gpu_memory() -> None:
-    """Libère la mémoire GPU laissée par les appels précédents (indispensable avec les longs prompts de la partie 2 sur T4).
-    Après une erreur, Jupyter garde la trace de l'exception, qui retient les tenseurs : on la libère aussi."""
+    """Frees the GPU memory left by previous calls (essential with the long prompts of part 2 on a T4).
+    After an error, Jupyter keeps the traceback of the exception, which holds the tensors: it is freed too."""
     import sys
     sys.last_type = sys.last_value = sys.last_traceback = None
     gc.collect()
@@ -21,8 +21,8 @@ def free_gpu_memory() -> None:
 
 
 def llm_call(agent: str, messages: list[dict], max_new_tokens: int = 256) -> str:
-    """Appelle le LLM et trace l'appel : empreinte, durée et réponse dans l'audit ; prompt et réponse complets dans llm_calls.jsonl.
-    Un manque de mémoire GPU ne fait pas planter le pipeline : la réponse est vide et le superviseur bascule sur son repli."""
+    """Calls the LLM and traces the call: fingerprint, duration and answer in the audit log; full prompt and answer in llm_calls.jsonl.
+    A lack of GPU memory does not crash the pipeline: the answer is empty and the supervisor switches to its fallback."""
     t0 = time.perf_counter()
     prompt_sha = sha256_text(canonical_json(messages))
     free_gpu_memory()
@@ -31,7 +31,7 @@ def llm_call(agent: str, messages: list[dict], max_new_tokens: int = 256) -> str
     except Exception as exc:                             # torch.cuda.OutOfMemoryError et autres erreurs de génération
         if "out of memory" not in str(exc).lower() and type(exc).__name__ != "OutOfMemoryError":
             raise
-        response, error = "", f"{type(exc).__name__}: mémoire GPU insuffisante"
+        response, error = "", f"{type(exc).__name__}: not enough GPU memory"
         free_gpu_memory()
     seconds = round(time.perf_counter() - t0, 2)
     with LLM_LOG.open("a", encoding="utf-8") as f:
@@ -41,7 +41,7 @@ def llm_call(agent: str, messages: list[dict], max_new_tokens: int = 256) -> str
                                   "response": response[:600], "response_sha256": sha256_text(response), "error": error,
                                   "seconds": seconds}, level="WARNING" if error else "INFO")
     if error:
-        print(f"⚠ {agent} : {error} ; le superviseur utilise son repli")
+        print(f"⚠ {agent}: {error}; the supervisor uses its fallback")
     return response
 
 
@@ -50,7 +50,7 @@ CALENDAR_COLUMNS = {"date_key", "date", "year", "quarter", "month", "month_name"
 
 
 def qi(name: str) -> str:
-    """Nom SQL protégé (espaces, majuscules)."""
+    """Quoted SQL name (spaces, capitals)."""
     return '"' + str(name).replace('"', '""') + '"'
 
 
@@ -61,7 +61,7 @@ def words(name: str) -> str:
 
 
 class BIWarehouse:
-    """Accès en lecture seule à l'entrepôt de la partie 1 (DuckDB ou SQLite), utilisé après un redémarrage."""
+    """Read-only access to the part 1 warehouse (DuckDB or SQLite), used after a restart."""
 
     def __init__(self, path: str):
         self.path, self.engine = Path(path), "duckdb" if str(path).endswith(".duckdb") else "sqlite"
@@ -76,7 +76,7 @@ class BIWarehouse:
 
 
 def source_table(name: str, spec: dict) -> str | None:
-    """Table nettoyée d'origine d'une table du modèle en étoile."""
+    """Original cleaned table of a star schema table."""
     if spec.get("lineage"):
         return spec["lineage"]
     stem = re.sub(r"^(dim|fact)_", "", name)
@@ -87,36 +87,36 @@ def source_table(name: str, spec: dict) -> str | None:
 
 
 def column_meta(name: str, col: str, spec: dict, source: str | None, derived: dict) -> dict:
-    """Type sémantique et origine d'une colonne de l'entrepôt (déduits de la partie 1, jamais d'un nom de dataset)."""
+    """Semantic type and origin of a warehouse column (inferred from part 1, never from a dataset name)."""
     if col in TECH_COLUMNS:
-        return {"semantic": "technical", "origin": "technique"}
+        return {"semantic": "technical", "origin": "technical"}
     if name == "dim_date":
-        return {"semantic": "key" if col == "date_key" else "calendar", "origin": "calendrier"}
+        return {"semantic": "key" if col == "date_key" else "calendar", "origin": "calendar"}
     if col.endswith("_date_key"):
-        return {"semantic": "key", "origin": "clé de date"}
+        return {"semantic": "key", "origin": "date key"}
     if source and (source, col) in derived:
         kind = derived[(source, col)]
-        return {"semantic": "numeric" if kind.startswith("délai") else "integer",
-                "origin": "indicateur dérivé : " + kind, "derived": "duration" if kind.startswith("délai") else "flag"}
+        return {"semantic": "numeric" if kind.startswith("duration") else "integer",
+                "origin": "derived indicator: " + kind, "derived": "duration" if kind.startswith("duration") else "flag"}
     if col in spec.get("sums", {}) and source and col not in DATA_CONTRACT[source]["columns"]:
-        return {"semantic": "numeric", "origin": "agrégat d'un fait enfant (somme par clé)"}
+        return {"semantic": "numeric", "origin": "aggregate of a child fact (sum per key)"}
     if col.endswith("_count") and source and col not in DATA_CONTRACT[source]["columns"]:
-        return {"semantic": "integer", "origin": "agrégat d'un fait enfant (nombre de lignes)"}
+        return {"semantic": "integer", "origin": "aggregate of a child fact (row count)"}
     if source and col in DATA_CONTRACT[source]["columns"]:
         return {"semantic": DATA_CONTRACT[source]["columns"][col], "origin": "source"}
     for t, s in DATA_CONTRACT.items():                    # clé propagée d'un fait parent ou attribut d'une dimension jointe
         if col in s["columns"]:
-            return {"semantic": s["columns"][col], "origin": f"hérité de {t}"}
-    return {"semantic": None, "origin": "inconnue"}
+            return {"semantic": s["columns"][col], "origin": f"inherited from {t}"}
+    return {"semantic": None, "origin": "unknown"}
 
 
 def build_handoff() -> dict:
-    """Assemble le dossier de transmission à partir de l'état final de la partie 1."""
-    assert DATA_PREP_RESULT["status"] == "success", "La partie 1 doit se terminer avec le statut success."
-    derived = {(r.table, r.colonne): r.type for r in DERIVED.itertuples()}
+    """Assembles the handoff file from the final state of part 1."""
+    assert DATA_PREP_RESULT["status"] == "success", "Part 1 must end with the success status."
+    derived = {(r.table, r.column): r.type for r in DERIVED.itertuples()}
     tables = {}
     for name, spec in ETL_TEMPLATES.items():
-        if ETL_STATUS.get(name) != "testée":
+        if ETL_STATUS.get(name) != "tested":
             continue
         source = source_table(name, spec)
         cols = list(WH.query(f"SELECT * FROM {qi(name)} LIMIT 0").columns)
@@ -140,14 +140,14 @@ INPUT_ROOT = Path(os.environ.get("BIFLOW_INPUT_ROOT", "/kaggle/input"))
 
 
 def latest_handoff() -> Path:
-    """Dernier dossier de transmission : d'abord dans le dossier de travail, sinon dans une sortie de notebook
-    attachée en entrée (Add Input → Your Work). Dans ce cas le run est recopié en écriture et ses chemins recalés."""
+    """Latest handoff file: first in the working folder, otherwise in a notebook output
+    attached as an input (Add Input → Your Work). In that case the run is copied to a writable place and its paths fixed."""
     found = sorted(glob.glob(str(CONFIG.output_root / "*" / "bi_handoff.json")))
     if found:
         return Path(found[-1])
     found = sorted(glob.glob(str(INPUT_ROOT / "**" / "bi_handoff.json"), recursive=True), key=lambda p: Path(p).parent.name)
-    assert found, ("Aucun dossier de transmission : exécutez la partie 1 complète, "
-                   "ou attachez en entrée la sortie d'une version sauvegardée du notebook.")
+    assert found, ("No handoff file: run the complete part 1, "
+                   "or attach as an input the output of a saved version of the notebook.")
     src = Path(found[-1]).parent
     dst = CONFIG.output_root / src.name
     if not dst.exists():
@@ -157,7 +157,7 @@ def latest_handoff() -> Path:
     rel = Path(*old.parts[old.parts.index(src.name) + 1:]) if src.name in old.parts else Path(old.name)
     handoff["warehouse"]["path"] = str(dst / rel)
     (dst / "bi_handoff.json").write_text(canonical_json(handoff), encoding="utf-8")
-    print(f"Run précédent recopié depuis les entrées : {src} → {dst}")
+    print(f"Previous run copied from the inputs: {src} → {dst}")
     return dst / "bi_handoff.json"
 
 
@@ -165,19 +165,20 @@ if "DATA_PREP_RESULT" in globals() and DATA_PREP_RESULT.get("status") == "succes
     BI_INPUT, BI_WH = build_handoff(), WH                 # même session : on consomme directement la partie 1
     HANDOFF_PATH = RUN_DIR / "bi_handoff.json"
     HANDOFF_PATH.write_text(canonical_json(BI_INPUT), encoding="utf-8")
-    handoff_mode = "même session"
+    handoff_mode = "same session"
 else:                                                     # session redémarrée : on recharge le dernier dossier
     HANDOFF_PATH = latest_handoff()
     BI_INPUT = json.loads(HANDOFF_PATH.read_text(encoding="utf-8"))
     BI_WH = BIWarehouse(BI_INPUT["warehouse"]["path"])
-    handoff_mode = "rechargé depuis " + str(HANDOFF_PATH.parent.name)
+    handoff_mode = "reloaded from " + str(HANDOFF_PATH.parent.name)
 
 HANDOFF_SHA256 = sha256_text(canonical_json(BI_INPUT))
-BI_FACTS = [t for t, s in BI_INPUT["tables"].items() if s["kind"] == "fait"]
+BI_FACTS = [t for t, s in BI_INPUT["tables"].items() if s["kind"] == "fact"]
 if not BI_FACTS:            # aucun fait (ex. une seule table de référence) : la table principale sert de base de calcul
     BI_FACTS = [max((t for t in BI_INPUT["tables"] if t != "dim_date"), key=lambda t: BI_INPUT["tables"][t]["rows"])]
 
 # ---------------------------------------------------------------- dates éclatées en colonnes année / mois / jour
+
 MONTH_NUMBERS = {m: i + 1 for names in (
     ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"],
     ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"],
@@ -190,7 +191,7 @@ SPLIT_PARTS = {"year": {"year", "yr", "annee", "année", "ano", "año"}, "month"
 
 
 def split_part(col: str) -> tuple[str, str] | None:
-    """« arrival_date_year » → (« arrival date », « year ») ; « arrival_date_day_of_month » → (« arrival date », « day »)."""
+    """"arrival_date_year" → ("arrival date", "year"); "arrival_date_day_of_month" → ("arrival date", "day")."""
     toks = [t for t in words(col).split() if t not in {"of", "the", "de", "du", "number", "num", "no"}]
     if len(toks) >= 2 and toks[-2] in SPLIT_PARTS["day"] and toks[-1] in SPLIT_PARTS["month"]:
         return " ".join(toks[:-2]), "day"
@@ -208,7 +209,7 @@ def month_number(s: pd.Series) -> pd.Series:
 
 
 def split_dates(table: str, df: pd.DataFrame) -> list[dict]:
-    """Repère une date éclatée (même préfixe, année + mois, jour facultatif) dont les valeurs sont dans le calendrier."""
+    """Finds a split date (same prefix, year + month, optional day) whose values are in the calendar."""
     groups = {}
     for c in df.columns:
         sp = split_part(c)
@@ -232,8 +233,8 @@ def split_dates(table: str, df: pd.DataFrame) -> list[dict]:
 
 
 class BIWorkspace:
-    """Copie de travail en mémoire (DuckDB) de l'entrepôt, enrichie des dates reconstituées. L'entrepôt de la partie 1 n'est
-    jamais modifié ; utilisée seulement quand une date éclatée existe."""
+    """In-memory working copy (DuckDB) of the warehouse, enriched with the rebuilt dates. The part 1 warehouse is
+    never modified; only used when a split date exists."""
 
     def __init__(self, source, frames: dict):
         self.path = getattr(source, "path", None)
@@ -259,8 +260,8 @@ TEXT_DATE_FORMATS = ["%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d", "%m/%
 
 
 def text_dates(table: str, df: pd.DataFrame) -> list[dict]:
-    """Dates restées en texte (format non reconnu en amont, ex. « 06/26/2022 03:00:00 PM ») : reconnues si un même format
-    lit au moins 95 % des valeurs, entre 1900 et 2100."""
+    """Dates left as text (format not recognized upstream, e.g. "06/26/2022 03:00:00 PM"): recognized if a single format
+    reads at least 95% of the values, between 1900 and 2100."""
     found = []
     for c, meta in BI_INPUT["tables"][table]["columns"].items():
         if meta["semantic"] not in {"text", None} or c not in df or df[c].dtype.kind in "biufcM":
@@ -275,14 +276,14 @@ def text_dates(table: str, df: pd.DataFrame) -> list[dict]:
             parsed = pd.to_datetime(df[c].astype("string").str.strip(), format=fmt, errors="coerce")
             ok = parsed.dropna()
             if len(ok) >= 0.95 * len(vals) and ok.dt.year.between(1900, 2100).all():
-                found.append({"table": table, "column": c, "values": parsed, "how": f"texte au format {fmt}"})
+                found.append({"table": table, "column": c, "values": parsed, "how": f"text in format {fmt}"})
             break
     return found
 
 
 def durations(table: str, dates: list[dict]) -> list[dict]:
-    """Délai entre deux dates reconnues d'une même ligne (ex. création → clôture), quand la seconde suit la première
-    dans au moins 95 % des lignes : « Created_Date_to_Closed_Date_days »."""
+    """Duration between two recognized dates of the same row (e.g. creation → closing), when the second follows the first
+    in at least 95% of the rows: "Created_Date_to_Closed_Date_days"."""
     out = []
     for a, b in itertools.permutations(dates, 2):
         d = (b["values"] - a["values"]).dt.total_seconds() / 86400
@@ -303,32 +304,32 @@ if REBUILT_DATES:
     for r in REBUILT_DATES:
         frames[r["table"]][r["column"]] = r["values"]
         frames[r["table"]][r["column"] + "_date_key"] = pd.to_numeric(r["values"].dt.strftime("%Y%m%d"), errors="coerce").astype("Int64")
-        how = r.get("how") or "date reconstituée (" + " + ".join(r["parts"][p] for p in ("year", "month", "day") if p in r["parts"]) + ")"
+        how = r.get("how") or "rebuilt date (" + " + ".join(r["parts"][p] for p in ("year", "month", "day") if p in r["parts"]) + ")"
         BI_INPUT["tables"][r["table"]]["columns"].update({
             r["column"]: {"semantic": "datetime", "origin": how, "derived": "date"},
-            r["column"] + "_date_key": {"semantic": "key", "origin": "clé de date"}})
+            r["column"] + "_date_key": {"semantic": "key", "origin": "date key"}})
     for r in REBUILT_DURATIONS:
         frames[r["table"]][r["column"]] = r["values"]
-        BI_INPUT["tables"][r["table"]]["columns"][r["column"]] = {"semantic": "numeric", "origin": f"délai dérivé ({r['how']})",
+        BI_INPUT["tables"][r["table"]]["columns"][r["column"]] = {"semantic": "numeric", "origin": f"derived duration ({r['how']})",
                                                                   "derived": "duration"}
     BI_WH = BIWorkspace(BI_WH, frames)
     AUDIT.log("bi_bridge", "dates_rebuilt", {"dates": [{"table": r["table"], "column": r["column"],
                                                         "source": r.get("how") or r["parts"]} for r in REBUILT_DATES],
                                              "durations": [{k: r[k] for k in ("table", "column", "how")} for r in REBUILT_DURATIONS]},
               level="DECISION")
-    print("Date(s) reconstituée(s) : " + " · ".join(f"{r['table']}.{r['column']} ← "
-                                                    + (r.get("how") or " + ".join(r["parts"].values())) for r in REBUILT_DATES))
+    print("Rebuilt date(s): " + " · ".join(f"{r['table']}.{r['column']} ← "
+                                           + (r.get("how") or " + ".join(r["parts"].values())) for r in REBUILT_DATES))
     if REBUILT_DURATIONS:
-        print("Délai(s) dérivé(s) : " + " · ".join(f"{r['column']} ({r['how']})" for r in REBUILT_DURATIONS))
+        print("Derived duration(s): " + " · ".join(f"{r['column']} ({r['how']})" for r in REBUILT_DURATIONS))
 del frames
 gc.collect()
 AUDIT.log("bi_bridge", "handoff_loaded", {"mode": handoff_mode, "path": HANDOFF_PATH, "sha256": HANDOFF_SHA256,
                                          "domain": BI_INPUT["domain"], "tables": list(BI_INPUT["tables"]),
                                          "quality_status": BI_INPUT["quality"]["status"]})
-print(f"Dossier de transmission ({handoff_mode}) · empreinte {HANDOFF_SHA256[:12]}…")
-print(f"Domaine : {BI_INPUT['domain']} · qualité : {BI_INPUT['quality']['status']} · "
-      f"table(s) de base : {', '.join(BI_FACTS)} · "
-      f"{len(BI_INPUT['quality']['open_rules'])} règle(s) qualité encore signalée(s)")
-pd.DataFrame([{"table": t, "type": s["kind"], "lignes": s["rows"], "grain": " + ".join(s["grain"]),
-               "colonnes": len(s["columns"]), "jointures": ", ".join(sorted({v[0] for v in s["fks"].values()})) or "—"}
+print(f"Handoff file ({handoff_mode}) · fingerprint {HANDOFF_SHA256[:12]}…")
+print(f"Domain: {BI_INPUT['domain']} · quality: {BI_INPUT['quality']['status']} · "
+      f"base table(s): {', '.join(BI_FACTS)} · "
+      f"{len(BI_INPUT['quality']['open_rules'])} quality rule(s) still flagged")
+pd.DataFrame([{"table": t, "type": s["kind"], "rows": s["rows"], "grain": " + ".join(s["grain"]),
+               "columns": len(s["columns"]), "joins": ", ".join(sorted({v[0] for v in s["fks"].values()})) or "—"}
               for t, s in BI_INPUT["tables"].items()])

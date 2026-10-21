@@ -44,9 +44,22 @@ def _definitions() -> dict:
             elif isinstance(node, (ast.Assign, ast.AnnAssign)):
                 targets = node.targets if isinstance(node, ast.Assign) else [node.target]
                 for t in targets:
-                    if isinstance(t, ast.Name) and t.id in CONSTANTS:
+                    if isinstance(t, ast.Name) and (t.id in CONSTANTS or (t.id.isupper() and _is_constant(node.value))):
                         found[t.id] = node
     return found
+
+
+def _is_constant(value) -> bool:
+    """Constante écrite en dur (liste de mois, motif re.compile…) : elle peut être reprise sans les données du run."""
+    if value is None:
+        return False
+    try:
+        ast.literal_eval(value)
+        return True
+    except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
+        pass
+    return (isinstance(value, ast.Call) and isinstance(value.func, ast.Attribute) and value.func.attr == "compile"
+            and isinstance(value.func.value, ast.Name) and value.func.value.id == "re")
 
 
 def _names_used(node: ast.AST) -> set[str]:
@@ -85,6 +98,14 @@ class _Search:
                 self.model = None
 
 
+def _turn(turn: dict) -> dict:
+    """Un échange du chat avec les clés lues par l'interface (le notebook anglais écrit answer / llm_rejections)."""
+    turn = dict(turn)
+    turn.setdefault("réponse", turn.get("answer", ""))
+    turn.setdefault("refus_llm", turn.get("llm_rejections", []))
+    return turn
+
+
 class XAISession:
     """Une conversation avec l'agent XAI sur UNE analyse (le fil est gardé dans <job>/chat/chat.jsonl)."""
 
@@ -93,15 +114,19 @@ class XAISession:
         result = json.loads((job_dir / "result.json").read_text(encoding="utf-8"))
         xai = result.get("xai") or {}
         if not xai.get("ready"):
-            raise RuntimeError("l'explicabilité n'a pas été construite pour cette analyse")
+            raise RuntimeError("explainability was not built for this analysis")
         xai_dir, run_dir = Path(xai["xai_dir"]), Path(result["run_dir"])
+        ledger = json.loads((xai_dir / "decision_ledger.json").read_text(encoding="utf-8"))
+        if ledger and "décision" in ledger[0] and "decision" not in ledger[0]:
+            raise RuntimeError("this analysis was made with the previous (French) notebook: click \"Run again\" to use "
+                               "the assistant with the English pipeline")
         chat_dir = job_dir / "chat"
         chat_dir.mkdir(exist_ok=True)
         module = types.ModuleType("biflow_xai_chat")
         ns = module.__dict__
         ns.update({"display": lambda *a, **k: None, "LLM": llm, "LLM_LOG": chat_dir / "llm_calls.jsonl",
                    "XAI_DIR": chat_dir, "RUN_DIR": run_dir, "RUN_ID": result.get("run_id"),
-                   "LEDGER": json.loads((xai_dir / "decision_ledger.json").read_text(encoding="utf-8")),
+                   "LEDGER": ledger,
                    "METHODS": json.loads((xai_dir / "rules.json").read_text(encoding="utf-8")),
                    "SEARCH": _Search("embeddings" in str((result.get("bi") or {}).get("search_mode")))})
         exec(compile(agent_source(), "<agent XAI (notebook, étapes 12.3 à 12.5)>", "exec"), ns)
@@ -120,19 +145,19 @@ class XAISession:
 
     @property
     def history(self) -> list[dict]:
-        return self.chat.history
+        return [_turn(t) for t in self.chat.history]
 
     def ask(self, question: str, use_llm: bool = True) -> dict:
         """Réponse des règles, reformulée par le LLM si possible ; une reformulation refusée par le code est remplacée
         par la réponse des règles (l'utilisateur ne reçoit jamais une explication non vérifiée)."""
-        mode = "auto" if use_llm and self.llm_ready else "règles"
+        mode = "auto" if use_llm and self.llm_ready else "rules"
         try:
-            return self.chat.ask(question, mode=mode, show=False)
+            return _turn(self.chat.ask(question, mode=mode, show=False))
         except Exception as exc:                 # Ollama fermé pendant la question : réponse des règles
-            if mode == "règles":
+            if mode == "rules":
                 raise
-            turn = self.chat.ask(question, mode="règles", show=False)
-            turn["refus_llm"] = [f"LLM indisponible : {exc}"]
+            turn = _turn(self.chat.ask(question, mode="rules", show=False))
+            turn["refus_llm"] = [f"LLM unavailable: {exc}"]
             return turn
 
     def clear(self) -> None:

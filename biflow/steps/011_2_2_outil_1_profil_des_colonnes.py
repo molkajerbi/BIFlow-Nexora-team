@@ -1,5 +1,5 @@
 @audited(agent="profiler",
-         description="Profil de chaque colonne : manquants, cardinalité, conformité au type déclaré, statistiques, valeurs fréquentes.")
+         description="Profile of each column: missing values, cardinality, compliance with the declared type, statistics, frequent values.")
 def profile_columns(table: str) -> ToolResult:
     df = RAW.get(table)
     spec = DATA_CONTRACT[table]["columns"]

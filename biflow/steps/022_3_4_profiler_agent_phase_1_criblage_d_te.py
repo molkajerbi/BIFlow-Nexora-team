@@ -1,5 +1,5 @@
 def screening() -> dict:
-    """Passe rapide et exhaustive, faite par le code : profil + grain de chaque table, relations."""
+    """Quick, exhaustive pass done by the code: profile + grain of each table, relationships."""
     tables = {}
     for t, spec in DATA_CONTRACT.items():
         p, g = profile_columns(t).summary, check_grain(t).summary
@@ -24,7 +24,7 @@ REQUIRED = ({("analyze_missingness", t) for t, s in SCREENING["tables"].items() 
 AUDIT.log("profiler_agent", "screening_completed",
           {"tables": len(SCREENING["tables"]), "required_investigations": sorted(f"{a}:{t}" for a, t in REQUIRED)})
 
-print(f"Investigations obligatoires ({len(REQUIRED)}) :")
+print(f"Required investigations ({len(REQUIRED)}):")
 for a, t in sorted(REQUIRED, key=lambda x: (x[1], x[0])):
     print(f"  - {a}({t})")
 pd.DataFrame(SCREENING["tables"]).T

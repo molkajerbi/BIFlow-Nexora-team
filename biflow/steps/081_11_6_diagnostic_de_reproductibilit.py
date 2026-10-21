@@ -10,10 +10,10 @@ rows = []
 for c in calls:
     if t_start <= c["ts"] <= t_end:
         seen = earlier.get(c["prompt_sha256"])
-        verdict = ("question nouvelle" if seen is None else
-                   "même question, même réponse" if c["response"] in seen else "même question, réponse différente")
+        verdict = ("new question" if seen is None else
+                   "same question, same answer" if c["response"] in seen else "same question, different answer")
         rows.append({"agent": c["agent"], "verdict": verdict})
-REPRO_DIAG = (pd.DataFrame(rows).value_counts().rename("appels").reset_index()
-              if rows else pd.DataFrame(columns=["agent", "verdict", "appels"]))
+REPRO_DIAG = (pd.DataFrame(rows).value_counts().rename("calls").reset_index()
+              if rows else pd.DataFrame(columns=["agent", "verdict", "calls"]))
 AUDIT.log("orchestrator", "reproducibility_diagnosis", {"rows": REPRO_DIAG.to_dict(orient="records"), "hashes_equal": REPRO})
 REPRO_DIAG.sort_values(["agent", "verdict"])

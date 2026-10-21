@@ -1,5 +1,5 @@
 def cramers_v(category: pd.Series, flag: pd.Series) -> float:
-    """Force d'association (0 à 1) entre une variable catégorielle et un indicateur binaire."""
+    """Strength of association (0 to 1) between a categorical variable and a binary indicator."""
     observed = pd.crosstab(category, flag).to_numpy(dtype=float)
     if observed.shape[0] < 2 or observed.shape[1] < 2:
         return 0.0
@@ -9,7 +9,7 @@ def cramers_v(category: pd.Series, flag: pd.Series) -> float:
 
 
 @audited(agent="profiler",
-         description="Explique les valeurs manquantes : colonne catégorielle qui les explique (V de Cramér) et groupes de colonnes manquantes ensemble.")
+         description="Explains missing values: categorical column that explains them (Cramér's V) and groups of columns missing together.")
 def analyze_missingness(table: str, max_categories: int = 30, v_threshold: float = 0.3) -> ToolResult:
     df = RAW.get(table)
     spec = DATA_CONTRACT[table]["columns"]
@@ -32,11 +32,11 @@ def analyze_missingness(table: str, max_categories: int = 30, v_threshold: float
             if v > best_v:
                 best, best_v = e, v
         if best_v >= v_threshold:
-            hypothesis = f"structurelle : dépend de {best}"
+            hypothesis = f"structural: depends on {best}"
         elif together:
-            hypothesis = "manquante en bloc avec " + ", ".join(together)
+            hypothesis = "missing as a block with " + ", ".join(together)
         else:
-            hypothesis = "non expliquée (aléatoire apparent)"
+            hypothesis = "unexplained (apparently random)"
         rows.append({"column": col, "missing": int(miss.sum()), "missing_pct": round(100 * miss.mean(), 2),
                      "best_explainer": best, "cramers_v": round(best_v, 3),
                      "missing_together_with": together, "hypothesis": hypothesis})

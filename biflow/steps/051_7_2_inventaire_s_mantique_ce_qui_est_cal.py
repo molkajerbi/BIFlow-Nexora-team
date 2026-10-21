@@ -1,24 +1,24 @@
 ROLES = {
-    "transaction_id": {"types": {"id"}, "label": "identifiant d'un événement ou d'une transaction"},
-    "entity_id": {"types": {"id"}, "label": "identifiant d'une entité suivie (client, produit, vendeur…)"},
-    "amount": {"types": {"numeric", "integer"}, "label": "montant monétaire"},
-    "profit": {"types": {"numeric", "integer"}, "label": "bénéfice ou marge (peut être négatif)"},
-    "discount": {"types": {"numeric", "integer"}, "label": "remise"},
-    "quantity": {"types": {"integer", "numeric"}, "label": "quantité ou nombre"},
-    "score": {"types": {"integer", "numeric"}, "label": "note ou score sur une échelle"},
-    "duration": {"types": {"numeric", "integer"}, "label": "durée ou délai"},
-    "event_date": {"types": {"datetime"}, "label": "date d'un événement"},
-    "flag": {"types": {"category", "integer", "numeric"}, "label": "indicateur oui/non (deux valeurs)"},
-    "status": {"types": {"category"}, "label": "statut ou état"},
-    "category": {"types": {"category", "zip"}, "label": "catégorie pour regrouper"},
-    "location": {"types": {"category", "zip", "geo"}, "label": "lieu (pays, région, ville…)"},
+    "transaction_id": {"types": {"id"}, "label": "identifier of an event or a transaction"},
+    "entity_id": {"types": {"id"}, "label": "identifier of a tracked entity (customer, product, seller…)"},
+    "amount": {"types": {"numeric", "integer"}, "label": "monetary amount"},
+    "profit": {"types": {"numeric", "integer"}, "label": "profit or margin (can be negative)"},
+    "discount": {"types": {"numeric", "integer"}, "label": "discount"},
+    "quantity": {"types": {"integer", "numeric"}, "label": "quantity or count"},
+    "score": {"types": {"integer", "numeric"}, "label": "rating or score on a scale"},
+    "duration": {"types": {"numeric", "integer"}, "label": "duration or delay"},
+    "event_date": {"types": {"datetime"}, "label": "date of an event"},
+    "flag": {"types": {"category", "integer", "numeric"}, "label": "yes/no indicator (two values)"},
+    "status": {"types": {"category"}, "label": "status or state"},
+    "category": {"types": {"category", "zip"}, "label": "category used for grouping"},
+    "location": {"types": {"category", "zip", "geo"}, "label": "place (country, region, city…)"},
 }
 MEASURE_ROLES = {"amount", "profit", "discount", "quantity", "score", "duration"}
 MAX_GROUP_VALUES = 100                                    # au-delà, une colonne est trop fine pour servir de catégorie (Olist : 71 catégories)
 
 
 def profile_column(s: pd.Series, semantic: str | None) -> dict:
-    """Profil compact d'une colonne de l'entrepôt."""
+    """Compact profile of a warehouse column."""
     if semantic == "datetime":
         s = pd.to_datetime(s, errors="coerce")
     elif semantic in {"numeric", "integer", "geo"}:
@@ -68,14 +68,14 @@ MONTH_WORDS = {"january", "february", "march", "april", "may", "june", "july", "
 
 
 def name_says(col: str, role: str, ignore: set = frozenset()) -> bool:
-    """Le nom de la colonne contient-il un mot évocateur du rôle ? (mot exact ou préfixe d'au moins 4 lettres)"""
+    """Does the column name contain a word suggesting the role? (exact word or prefix of at least 4 letters)"""
     toks, vocab = words(col).split(), ROLE_WORDS[role] - set(ignore)
     return any(t in vocab or any(len(w) >= 4 and t.startswith(w) for w in vocab) for t in toks)
 
 
 def date_part(col: str, prof: dict) -> str | None:
-    """Partie de date (année, mois, semaine, jour…) : un repère de temps, jamais une mesure ni un segment.
-    Reconnue par le nom (« arrival_date_year », « week_number », « day_of_month ») ET par des valeurs dans la plage du calendrier."""
+    """Date part (year, month, week, day…): a time marker, never a measure nor a segment.
+    Recognized by the name ("arrival_date_year", "week_number", "day_of_month") AND by values within the calendar range."""
     toks = [t for t in words(col).split() if t not in {"number", "num", "no", "nb", "of", "the", "de", "du"}]
     part = "day" if toks[-2:] in (["day", "month"], ["day", "week"], ["day", "year"]) else toks[-1] if toks else None
     if part not in DATE_PARTS:
@@ -88,7 +88,7 @@ def date_part(col: str, prof: dict) -> str | None:
 
 
 def compatible_roles(col: str, meta: dict, prof: dict, is_grain: bool, is_fk: bool, rows: int) -> list[str]:
-    """Rôles qu'une colonne PEUT jouer d'après son type, son profil et son nom (le choix final revient à l'agent KPI)."""
+    """Roles a column CAN play according to its type, its profile and its name (the final choice belongs to the KPI agent)."""
     sem = meta["semantic"]
     if meta.get("derived") == "duration":
         return ["duration"]
@@ -126,11 +126,11 @@ def compatible_roles(col: str, meta: dict, prof: dict, is_grain: bool, is_fk: bo
 
 
 def reachable_tables(fact: str) -> dict:
-    """Tables accessibles depuis un fait de base : lui-même (mesures + attributs) et les tables jointes (attributs seulement)."""
+    """Tables reachable from a base fact: itself (measures + attributes) and the joined tables (attributes only)."""
     reach = {fact: "base"}
     for col, (target, key) in BI_INPUT["tables"][fact]["fks"].items():
         if target in BI_INPUT["tables"] and target not in reach:
-            reach[target] = "fait parent" if BI_INPUT["tables"][target]["kind"] == "fait" else "dimension"
+            reach[target] = "parent fact" if BI_INPUT["tables"][target]["kind"] == "fact" else "dimension"
     return reach
 
 
@@ -160,7 +160,7 @@ BI_INVENTORY = build_inventory()
 ROLE_COVERAGE = {r: sorted(BI_INVENTORY.loc[BI_INVENTORY["roles"].map(lambda x: r in x), "column"].unique().tolist())
                  for r in ROLES}
 AUDIT.log("bi_bridge", "inventory_built", {"columns": len(BI_INVENTORY), "role_coverage": {r: len(c) for r, c in ROLE_COVERAGE.items()}})
-print(f"{len(BI_INVENTORY)} colonnes analysables · rôles couverts : "
+print(f"{len(BI_INVENTORY)} analyzable columns · roles covered: "
       + ", ".join(f"{r} ({len(c)})" for r, c in ROLE_COVERAGE.items() if c))
-print("Rôles absents :", [r for r, c in ROLE_COVERAGE.items() if not c] or "aucun")
+print("Missing roles:", [r for r, c in ROLE_COVERAGE.items() if not c] or "none")
 BI_INVENTORY[["table", "column", "semantic", "origin", "distinct", "roles"]].assign(roles=lambda d: d["roles"].map(", ".join))

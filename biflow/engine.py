@@ -32,20 +32,90 @@ from .extract import NOTEBOOK, extract
 from .llm import LLMUnavailable, OllamaLLM
 
 STEPS_DIR = Path(__file__).resolve().parent / "steps"
-STEP_NAMES = {1: "Contrat et ingestion", 2: "Outils du Profiler", 3: "Agents LLM (Domaine + Profiler)",
-              4: "Qualité et nettoyage", 5: "ETL : modèle en étoile", 6: "Livraison de la préparation",
-              7: "Base de connaissances des KPI", 8: "Agent KPI", 9: "Agent analyste", 10: "Agent dashboard",
-              11: "Orchestration de la partie 2", 12: "Explicabilité (XAI)"}
+STEP_NAMES = {1: "Contract and ingestion", 2: "Profiler tools", 3: "LLM agents (Domain + Profiler)",
+              4: "Quality and cleaning", 5: "ETL: star schema", 6: "Data preparation delivery",
+              7: "KPI knowledge base", 8: "KPI agent", 9: "Analyst agent", 10: "Dashboard agent",
+              11: "BI orchestration", 12: "Explainability (XAI)"}
+# Titres des sections du notebook, en anglais (affichés « Right now: … » pendant l'analyse)
+SECTION_TITLES = {
+    "1.1": "Configuration", "1.2": "Tamper-proof audit log", "1.4": "Automatic data contract inference",
+    "1.5": "Active contract and confidence score", "1.6": "Traceable ingestion (bronze zone)",
+    "1.7": "Preview and step 1 checkpoint", "1.8": "Step 1 audit log", "2.1": "Automatic traceability and validators",
+    "2.2": "Tool 1: column profile", "2.3": "Tool 2: uniqueness and duplicates", "2.4": "Tool 3: relationships between tables",
+    "2.5": "Tool 4: missing values explained", "2.6": "Tool 5: anomaly detection", "2.7": "Dataset health map",
+    "2.8": "Quality findings", "2.9": "Step 2 checkpoint", "3.1": "Local LLM", "3.2": "Traced LLM call and JSON extraction",
+    "3.3": "Domain & Contract Agent: understanding the business", "3.4": "Profiler Agent · phase 1: deterministic screening",
+    "3.5": "Profiler Agent · phase 2: LLM-driven investigation", "3.6": "Investigation findings",
+    "3.7": "Profiler Agent · phase 3: business interpretation", "3.8": "Profiling report and checkpoint",
+    "4.1": "Typing (silver zone)", "4.1 bis": "Missing, impossible and extreme values: the policy",
+    "4.2": "Quality rules engine (DAMA)", "4.3": "Quality score per dimension (before cleaning)",
+    "4.4": "Candidate fixes and sandbox", "4.5": "Quality agent: test, observe, decide", "4.6": "Risk-based automatic validation",
+    "4.7": "Controlled application of the fixes", "4.8": "Re-validation and Data Quality Report", "4.9": "Step 4 checkpoint",
+    "5.1": "Pre-check and SQL warehouse", "5.2": "Staging and time indicators", "5.3": "Automatic star schema design and tests",
+    "5.4": "ETL Agent: planning and building", "5.5": "Test results and the double-counting trap",
+    "5.6": "Export and step 5 checkpoint", "6.1": "Graph engine", "6.2": "Shared state and node wrapper", "6.3": "Graph nodes",
+    "6.4": "Building the graph", "6.5": "Single entry point", "7.1": "Bridge: what part 1 hands over to part 2",
+    "7.2": "Semantic inventory: what can be computed", "7.3": "KPI knowledge base", "7.4": "Knowledge base validation",
+    "7.5": "Semantic search engine (RAG)", "7.6": "Feasibility of each KPI on this dataset",
+    "7.7": "Business sector: search proposes, LLM decides, code checks", "7.8": "Reference KPIs handed to the KPI agent",
+    "7.9": "Step 7 checkpoint", "8.1": "Compiler: from the closed language to SQL (and pandas)",
+    "8.2": "KPI binding: automatic when obvious, LLM when in doubt", "8.3": "Computing and testing each KPI",
+    "8.4": "KPIs proposed by the agent", "8.5": "KPI catalog", "8.6": "Step 8 checkpoint", "9.1": "Reliable monthly series",
+    "9.2": "Statistical rules: detecting what changes", "9.3": "Breakdown by segment", "9.4": "LLM-driven investigation",
+    "9.5": "Writing verified insights", "9.6": "Analysis report and checkpoint", "10.1": "Dashboard candidates",
+    "10.2": "Layout: the LLM chooses, the supervisor applies best practices", "10.3": "Template: styles and rendering engine",
+    "10.4": "Dashboard generation", "10.5": "Checks and checkpoint", "11.1": "Step registry", "11.2": "Orchestration graph",
+    "11.3": "Single entry point", "12.1": "Decision ledger", "12.2": "System rules: how each agent decides",
+    "12.3": "Explanation search engine", "12.4": "Answer: rules explain, LLM rephrases, code checks",
+    "12.5": "The chat", "12.6": "Evaluation and checkpoint",
+}
+
+
+def _title(cell: dict) -> str:
+    """Titre anglais d'une cellule (« 8.3 Computing and testing each KPI »), sinon le titre du notebook."""
+    import re
+    m = re.match(r"(\d+\.\d+(?: bis)?)", cell["title"])
+    return f"{m.group(1)} {SECTION_TITLES[m.group(1)]}" if m and m.group(1) in SECTION_TITLES else cell["title"]
 STEP_WEIGHTS = {1: 3, 2: 6, 3: 26, 4: 20, 5: 8, 6: 1, 7: 8, 8: 12, 9: 9, 10: 4, 11: 1, 12: 2}   # part du temps (le LLM domine)
 PREP_STEPS, BI_STEPS, XAI_STEPS = {1, 2, 3, 4, 5}, {7, 8, 9, 10, 11}, {12}
 BI_CHECKPOINTS = {7: ("ok7", "checks7"), 8: ("ok8", "checks8"), 9: ("ok9", "checks9"), 10: ("ok10", "checks10")}
+TESTED = {"testée", "tested"}
+
+# Le notebook anglais a traduit les clés de ses tableaux. L'interface (et les analyses déjà faites avec l'ancien notebook
+# français) lit les noms d'origine : les résultats exportés sont donc renommés vers ces noms, un tableau à la fois.
+RENAME = {
+    "profiling_report": {"column": "colonne", "finding": "constat"},
+    "health_map": {"rows": "lignes", "columns": "colonnes", "missing_cells_%": "cellules_manquantes_%",
+                   "columns_with_missing": "colonnes_avec_manquants", "invalid_values": "valeurs_non_conformes",
+                   "unique_grain": "grain_unique", "exact_duplicates": "doublons_exacts", "IF_anomalies": "anomalies_IF",
+                   "IQR_extremes": "extrêmes_IQR"},
+    "cleaning_plan": {"column": "colonne", "decided_by": "décidé_par", "candidate": "candidat", "findings": "constats",
+                      "simulated_effect": "effet_simulé"},
+    "derived_indicators": {"column": "colonne", "calculation": "calcul"},
+    "dismissed": {"item": "élément", "treatment": "traitement"},
+    "decisions": {"step": "étape", "subject": "sujet", "object": "objet", "decision": "décision", "why": "pourquoi",
+                  "decided_by": "décidé_par"},
+}
+INSIGHT_KEYS = {"title": "titre", "text": "texte", "recommendation": "recommandation", "facts": "faits"}
+
+
+def _get(d: dict, *keys):
+    """Valeur de la première clé présente (clé anglaise du nouveau notebook, ou clé française de l'ancien)."""
+    return next((d[k] for k in keys if k in d), None)
+
+
+def _col(df, *names):
+    """Première colonne présente : le notebook anglais et l'ancien notebook français n'ont pas les mêmes noms."""
+    return next((n for n in names if n in df), names[0])
+
+
 BI_NODES = {7: "bridge_agent", 8: "kpi_agent", 9: "analyst_agent", 10: "dashboard_agent"}
 
 LLM_CELL = """
 LLM = _BIFLOW_LLM
 LLM_MODEL_ID = getattr(LLM, "model_id", "test")
 _t0 = time.perf_counter()
-_answer = LLM.chat([{"role": "user", "content": "En une phrase : pourquoi une valeur manquante n'est-elle pas toujours une erreur ?"}], 60)
+_answer = LLM.chat([{"role": "user", "content": "In one sentence: why is a missing value not always an error?"}], 60)
 AUDIT.log("orchestrator", "llm_loaded", {
     "model": LLM_MODEL_ID, "backend": "ollama (CPU, local)", "url": getattr(LLM, "url", None),
     "num_ctx": getattr(LLM, "num_ctx", None), "decoding": "temperature=0, seed=42",
@@ -69,7 +139,7 @@ class Progress:
         """i : nombre de cellules déjà terminées."""
         pct = 100 * sum(self.weights[:i]) / sum(self.weights)
         self.update(done=i, percent=round(min(pct, 99)), step_num=cell["step"],
-                    step=f"{cell['step']}. {STEP_NAMES.get(cell['step'], '')}", cell=cell["title"])
+                    step=f"{cell['step']}. {STEP_NAMES.get(cell['step'], '')}", cell=_title(cell))
 
     def update(self, **kw) -> None:
         self.state.update(kw, elapsed_s=round(time.perf_counter() - self._t0))
@@ -91,7 +161,7 @@ class Progress:
                     time.sleep(0.1)
             self.path.write_text(text, encoding="utf-8")
         except OSError as exc:
-            print(f"(progression non enregistrée : {exc})", flush=True)
+            print(f"(progress not saved: {exc})", flush=True)
 
 
 def _display(*objs, **_kw) -> None:
@@ -141,31 +211,35 @@ def _export_bi(ns: dict, res_dir: Path, save) -> dict | None:
                 "formula", "fact", "columns", "reliability", "periods", "sql"]
         save("kpi_catalog", cat[[c for c in keep if c in cat]])
         reasons = {k: (b.get("reason") or "") for k, b in (ns.get("BINDINGS") or {}).items()}
-        info.update(kpis=len(cat), validated=int(cat["status"].str.startswith("validé").sum()),
-                    to_confirm=int((cat["status"] == "à confirmer").sum()),
+        info.update(kpis=len(cat), validated=int(cat["status"].str.startswith(("validé", "validated")).sum()),
+                    to_confirm=int(cat["status"].isin(["à confirmer", "to confirm"]).sum()),
                     proposed=len(ns.get("PROPOSALS") or {}), dropped=ns.get("DROPPED") or {},
                     failed={k: str(v) for k, v in (ns.get("FAILED") or {}).items()}, binding_reasons=reasons)
     if ns.get("KPI_SERIES"):
         pd.concat(ns["KPI_SERIES"].values(), ignore_index=True)[["id", "period", "v"]].to_csv(res_dir / "kpi_series.csv",
                                                                                              index=False)
     if "FACTS" in ns:
-        facts = [{k: f.get(k) for k in ("id", "kpi", "label", "type", "texte", "priority", "valence", "sens")}
-                 for f in ns["FACTS"].values()]
+        facts = [{"id": f.get("id"), "kpi": f.get("kpi"), "label": f.get("label"), "type": f.get("type"),
+                  "texte": _get(f, "text", "texte"), "priority": f.get("priority"), "valence": f.get("valence"),
+                  "sens": f.get("sens", f.get("direction"))} for f in ns["FACTS"].values()]
         save("analysis_facts", pd.DataFrame(facts))
+        not_signal = {"valeur", "value", "segment", "contribution"}
         info.update(series=len(ns.get("SERIES") or {}),
-                    signals=sum(1 for f in ns["FACTS"].values() if f["type"] not in {"valeur", "segment", "contribution"}),
+                    signals=sum(1 for f in ns["FACTS"].values() if f["type"] not in not_signal),
                     segments=sum(1 for f in ns["FACTS"].values() if f["type"] in {"segment", "contribution"}),
-                    investigations=[{"fait": i["fait"], "axe": list(i["axe"])[-1], "pourquoi": i["pourquoi"],
-                                     "source": i.get("source"), "résultat": i.get("résultat")}
+                    investigations=[{"fait": _get(i, "fact", "fait"), "axe": list(_get(i, "axis", "axe"))[-1],
+                                     "pourquoi": _get(i, "why", "pourquoi"), "source": i.get("source"),
+                                     "résultat": _get(i, "result", "résultat")}
                                     for i in ns.get("INVESTIGATIONS") or []],
                     reliable_periods={f: [p[0], p[-1]] if p else [] for f, p in (ns.get("RELIABLE") or {}).items()})
     if "INSIGHTS" in ns and "ANALYSIS" in ns:
-        (res_dir / "insights.json").write_text(json.dumps(ns["INSIGHTS"], ensure_ascii=False, indent=1, default=str),
+        insights = [{INSIGHT_KEYS.get(k, k): v for k, v in i.items()} for i in ns["INSIGHTS"]]
+        (res_dir / "insights.json").write_text(json.dumps(insights, ensure_ascii=False, indent=1, default=str),
                                                encoding="utf-8")
         info.update(insights=len(ns["INSIGHTS"]), insights_llm=sum(i.get("source") == "LLM" for i in ns["INSIGHTS"]))
     if ns.get("DASHBOARD_PATH") and Path(ns["DASHBOARD_PATH"]).exists() and "checks10" in ns:
         info.update(dashboard=str(Path(ns["DASHBOARD_PATH"]).resolve()), layout_source=ns.get("layout_source"),
-                    dashboard_title=(ns.get("LAYOUT") or {}).get("titre"))
+                    dashboard_title=_get(ns.get("LAYOUT") or {}, "title", "titre"))
     (res_dir / "bi.json").write_text(json.dumps(info, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
     return info
 
@@ -176,8 +250,8 @@ def _export_xai(ns: dict, res_dir: Path, save) -> dict | None:
     if not isinstance(ns.get("DECISIONS"), pd.DataFrame) or "XAI_REPORT" not in ns:
         return None
     d = ns["DECISIONS"]
-    save("decisions", d[[c for c in ("id", "étape", "agent", "sujet", "objet", "décision", "pourquoi", "décidé_par")
-                         if c in d]])
+    save("decisions", d[[c for c in ("id", "step", "étape", "agent", "subject", "sujet", "object", "objet", "decision",
+                                     "décision", "why", "pourquoi", "decided_by", "décidé_par") if c in d]])
     info = {**ns["XAI_REPORT"], "ready": True, "demo_questions": ns.get("DEMO_QUESTIONS") or [],
             "checkpoint": bool(ns.get("ok12")), "xai_dir": str(Path(ns["XAI_DIR"]).resolve())}
     (res_dir / "xai.json").write_text(json.dumps(info, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
@@ -193,6 +267,7 @@ def _export(ns: dict, job_dir: Path, llm, run_info: dict | None = None) -> dict:
 
     def save(name: str, df) -> None:
         if isinstance(df, pd.DataFrame) and len(df.columns):
+            df = df.rename(columns=RENAME.get(name, {}))
             df.to_csv(res_dir / f"{name}.csv", index=not isinstance(df.index, pd.RangeIndex))
 
     final = ns.get("DATA_PREP_RESULT") or {}
@@ -218,7 +293,7 @@ def _export(ns: dict, job_dir: Path, llm, run_info: dict | None = None) -> dict:
         save("etl_tests", pd.DataFrame([{"table": n, "type": ns["ETL_TEMPLATES"][n]["type"], "lignes": r["rows"],
                                          "colonnes": r["columns"], **r["tests"], "OK": r["passed"], "construite_par": r["decided_by"]}
                                         for n, r in ns["ETL_RESULTS"].items()]))
-        star = {n: {"type": t["type"], "grain": t.get("grain"), "rows": ns["ETL_RESULTS"].get(n, {}).get("rows"),
+        star = {n: {"type": "fait" if t["type"] in ("fait", "fact") else t["type"], "grain": t.get("grain"), "rows": ns["ETL_RESULTS"].get(n, {}).get("rows"),
                     "links": {c: list(v) for c, v in (t.get("fks") or {}).items()},
                     "measures": list((t.get("sums") or {}).keys()), "description": t.get("description")}
                 for n, t in ns["ETL_TEMPLATES"].items()}
@@ -261,11 +336,11 @@ def _deliver(ns: dict, error: str | None) -> dict:
     les données nettoyées, après un contrôle rapide (données brutes inchangées, journal d'audit intact)."""
     status = ns.get("STATUS")
     run_dir = Path(ns["RUN_DIR"]) if ns.get("RUN_DIR") else None
-    etl_ok = bool(ns.get("ETL_STATUS")) and all(s == "testée" for s in ns["ETL_STATUS"].values())
+    etl_ok = bool(ns.get("ETL_STATUS")) and all(s in TESTED for s in ns["ETL_STATUS"].values())
     if status == "blocked":
-        final = {"status": "blocked", "error": "qualité bloquante : le modèle en étoile n'a pas été construit"}
+        final = {"status": "blocked", "error": "blocking data quality: the star schema was not built"}
     elif error or not etl_ok or run_dir is None:
-        final = {"status": "failed", "error": error or "construction du modèle en étoile incomplète"}
+        final = {"status": "failed", "error": error or "star schema build incomplete"}
     else:
         final = {"status": "success", "error": None}
     q_run, agent_run, etl_run = ns.get("Q_RUN") or {}, ns.get("AGENT_RUN") or {}, ns.get("ETL_RUN") or {}
@@ -277,16 +352,17 @@ def _deliver(ns: dict, error: str | None) -> dict:
                         "corrections_applied": len(ns["EXECUTION"]) if "EXECUTION" in ns else 0,
                         "cells_changed": len(ns["CHANGES"]) if "CHANGES" in ns else 0,
                         "rows_changed": len(ns["ROW_CHANGES"]) if "ROW_CHANGES" in ns else 0, "quality_status": status}
-    final["etl"] = {"tables_built": sum(s == "testée" for s in (ns.get("ETL_STATUS") or {}).values()),
+    final["etl"] = {"tables_built": sum(s in TESTED for s in (ns.get("ETL_STATUS") or {}).values()),
                     "tables_expected": len(ns.get("ETL_TEMPLATES") or {}), "built_by_agent": etl_run.get("built_by_agent")}
     if final["status"] != "success":
         return final
-    clean_dir = run_dir / "donnees_nettoyees"                  # données nettoyées, une table par fichier
+    clean_dir = run_dir / "cleaned_data"                      # données nettoyées, une table par fichier
     clean_dir.mkdir(exist_ok=True)
     for name, df in ns["SILVER"].items():
         df.to_csv(clean_dir / f"{name}.csv", index=False)
     warehouse = run_dir / "warehouse"                         # modèle en étoile : base + CSV (étape 5)
-    raw_ok = bool(ns["checkpoint_raw_integrity"]()["contenu_inchangé"].all())
+    integrity = ns["checkpoint_raw_integrity"]()
+    raw_ok = bool(integrity[_col(integrity, "content_unchanged", "contenu_inchangé")].all())
     chain_ok, chain_msg = ns["AUDIT"].verify()
     outputs = {"directory": str(warehouse), "warehouse": str(ns["WH"].path), "cleaned_data": str(clean_dir),
                "tables": {n: len(d) for n, d in (ns.get("STAR") or {}).items()},
@@ -297,7 +373,7 @@ def _deliver(ns: dict, error: str | None) -> dict:
          "outputs": outputs}, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
     final["outputs"] = outputs
     if not (raw_ok and chain_ok):
-        final.update(status="failed", error="contrôle final en échec (données brutes ou journal d'audit modifiés)")
+        final.update(status="failed", error="final check failed (raw data or audit log modified)")
     return final
 
 
@@ -309,13 +385,13 @@ def _publish_partial(ns: dict, job_dir: Path, llm, completed_step: int, run_info
         (job_dir / "results" / "partial.json").write_text(json.dumps(partial, ensure_ascii=False, indent=1, default=str),
                                                           encoding="utf-8")
     except Exception as exc:                          # un affichage partiel ne doit jamais casser le traitement
-        print(f"(résultats partiels non publiés : {exc})")
+        print(f"(partial results not published: {exc})")
 
 
 def _failed_checks(ns: dict, step: int) -> str:
     ok_name, checks_name = BI_CHECKPOINTS[step]
     failed = [k for k, v in (ns.get(checks_name) or {}).items() if not v]
-    return f"point de contrôle de l'étape {step} en échec : {', '.join(failed) or '?'}"
+    return f"step {step} checkpoint failed: {', '.join(failed) or '?'}"
 
 
 def _embeddings_usable() -> bool:
@@ -332,13 +408,13 @@ def _embeddings_usable() -> bool:
         r = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=1800,
                            creationflags=flags, env={**os.environ, "PYTHONUTF8": "1"})
     except (subprocess.TimeoutExpired, OSError) as exc:
-        print(f"Embeddings : test impossible ({exc}) : recherche lexicale", flush=True)
+        print(f"Embeddings: test failed ({exc}): lexical search", flush=True)
         return False
     if r.returncode == 0 and "ok" in r.stdout:
-        print("Embeddings : modèle multilingue disponible", flush=True)
+        print("Embeddings: multilingual model available", flush=True)
         return True
-    last = (r.stderr or r.stdout or "").strip().splitlines()[-1:] or [f"code de sortie {r.returncode}"]
-    print(f"Embeddings indisponibles ({last[0][:200]}) : recherche lexicale", flush=True)
+    last = (r.stderr or r.stdout or "").strip().splitlines()[-1:] or [f"exit code {r.returncode}"]
+    print(f"Embeddings unavailable ({last[0][:200]}): lexical search", flush=True)
     return False
 
 
@@ -384,8 +460,8 @@ def run_pipeline(data_dir: str | Path, job_dir: str | Path, llm=None) -> dict:
     def deliver() -> None:
         nonlocal delivered
         delivered = True
-        progress.update(step="Livraison", cell="Livraison du modèle en étoile et des données nettoyées")
-        print("\n### Livraison : modèle en étoile et données nettoyées", flush=True)
+        progress.update(step="Delivery", cell="Delivering the star schema and the cleaned data")
+        print("\n### Delivery: star schema and cleaned data", flush=True)
         ns["DATA_PREP_RESULT"] = _deliver(ns, prep_error)
         r = ns["DATA_PREP_RESULT"]
         ns["AUDIT"].log("orchestrator", "data_preparation_finished", {"status": r["status"], "error": r.get("error")},
@@ -425,7 +501,7 @@ def run_pipeline(data_dir: str | Path, job_dir: str | Path, llm=None) -> dict:
                 if done_step in BI_CHECKPOINTS and bi_started and not bi_error and not ns.get(BI_CHECKPOINTS[done_step][0]):
                     bi_error = _failed_checks(ns, done_step)          # comme run_bi_insight() : arrêt propre de la partie 2
                     failed_steps.add(done_step)
-                    print(f"!! Partie 2 arrêtée : {bi_error}", flush=True)
+                    print(f"!! Part 2 stopped: {bi_error}", flush=True)
                 if done_step in ran and done_step not in failed_steps:   # seule une étape exécutée sans erreur compte
                     _publish_partial(ns, job_dir, llm, done_step, run_info)
                     progress.update(completed_step=done_step)
@@ -450,7 +526,7 @@ def run_pipeline(data_dir: str | Path, job_dir: str | Path, llm=None) -> dict:
                     continue
             ran.add(step)
             progress.at_cell(i, cell)
-            print(f"\n### [{i + 1}/{len(cells)}] {cell['title']}", flush=True)
+            print(f"\n### [{i + 1}/{len(cells)}] {_title(cell)}", flush=True)
             source = LLM_CELL if cell["kind"] == "llm" else (STEPS_DIR / cell["file"]).read_text(encoding="utf-8")
             try:
                 _exec_cell(source, ns, cell["file"])
@@ -459,12 +535,12 @@ def run_pipeline(data_dir: str | Path, job_dir: str | Path, llm=None) -> dict:
                 if step in PREP_STEPS:
                     raise
                 if step in BI_STEPS:
-                    bi_error = f"{cell['title']} : {exc}"
+                    bi_error = f"{_title(cell)}: {exc}"
                 else:
-                    xai_error = f"{cell['title']} : {exc}"
+                    xai_error = f"{_title(cell)}: {exc}"
                 print(f"!! {exc}", flush=True)
             except Exception as exc:
-                where = f"{cell['title']} : {type(exc).__name__} : {exc}"
+                where = f"{_title(cell)}: {type(exc).__name__}: {exc}"
                 failed_steps.add(step)
                 if step in (4, 5):
                     prep_error = where                # arrêt « métier » (qualité bloquante…)
@@ -475,7 +551,7 @@ def run_pipeline(data_dir: str | Path, job_dir: str | Path, llm=None) -> dict:
                 else:
                     raise
                 traceback.print_exc()
-                print(f"!! Arrêt à {where}", flush=True)
+                print(f"!! Stopped at {where}", flush=True)
         if not delivered:
             deliver()
         if bi_started and run_info["bi"] is None:
@@ -488,10 +564,10 @@ def run_pipeline(data_dir: str | Path, job_dir: str | Path, llm=None) -> dict:
             close_part("explainability", run_info["xai"]["status"], xai_error)
         result = _export(ns, job_dir, llm, run_info)
         if result["status"] == "success" and bi_error:
-            result.update(status="failed", error=f"Analyse BI interrompue : {bi_error}")
+            result.update(status="failed", error=f"BI analysis interrupted: {bi_error}")
     except Exception as exc:
         traceback.print_exc()
-        result = {"status": "failed", "error": f"{type(exc).__name__} : {exc}",
+        result = {"status": "failed", "error": f"{type(exc).__name__}: {exc}",
                   "llm": {"model": getattr(llm, "model_id", None), "calls": getattr(llm, "calls", 0)}}
     finally:
         os.chdir(cwd)
@@ -507,7 +583,7 @@ def run_pipeline(data_dir: str | Path, job_dir: str | Path, llm=None) -> dict:
         try:
             shutil.make_archive(str(job_dir / "biflow_outputs"), "zip", result["run_dir"])
         except OSError as exc:
-            print(f"Zip des livrables impossible : {exc}")
+            print(f"Could not zip the deliverables: {exc}")
     (job_dir / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
     progress.update(status=result["status"], done=len(cells), percent=100, error=result.get("error"),
                     completed_step=13 if result["status"] == "success" else progress.state["completed_step"])

@@ -1,18 +1,18 @@
 chain_ok, chain_msg = AUDIT.verify()
 checks8 = {
-    "au moins 3 KPI validés": int(KPI_CATALOG["status"].str.startswith("validé").sum()) >= 3,
-    "tous les KPI du catalogue testés": bool(len(KPI_CATALOG)) and all(all(t.values()) for t in KPI_CATALOG["tests"]),
-    "double calcul SQL = pandas": all(t.get("double calcul", False) for t in KPI_CATALOG["tests"]),
-    "chaque valeur vient d'une requête SQL": all(bool(r) for r in KPI_CATALOG["sql"]),
-    "catalogue exporté": (BI_DIR / "kpi_catalog.json").exists(),
-    "journal d'audit intègre": chain_ok,
+    "at least 3 validated KPIs": int(KPI_CATALOG["status"].str.startswith("validated").sum()) >= 3,
+    "all catalog KPIs tested": bool(len(KPI_CATALOG)) and all(all(t.values()) for t in KPI_CATALOG["tests"]),
+    "double calculation SQL = pandas": all(t.get("double calculation", False) for t in KPI_CATALOG["tests"]),
+    "each value comes from a SQL query": all(bool(r) for r in KPI_CATALOG["sql"]),
+    "catalog exported": (BI_DIR / "kpi_catalog.json").exists(),
+    "audit log intact": chain_ok,
 }
 if "checkpoint_raw_integrity" in globals() and "RAW" in globals():
-    checks8["données brutes inchangées"] = bool(checkpoint_raw_integrity()["contenu_inchangé"].all())
+    checks8["raw data unchanged"] = bool(checkpoint_raw_integrity()["content_unchanged"].all())
 ok8 = all(checks8.values())
 AUDIT.log("orchestrator", "checkpoint_step8", {"passed": ok8, **checks8, "catalog_sha256": CATALOG_SHA256, "audit_chain": chain_msg},
           level="INFO" if ok8 else "ERROR")
 for k, v in checks8.items():
     print(f"{k:36s}: {v}")
-print(f"Journal d'audit                     : {chain_msg}")
-print("ÉTAPE 8 VALIDÉE" if ok8 else "ÉTAPE 8 EN ÉCHEC")
+print(f"Audit log                           : {chain_msg}")
+print("STEP 8 PASSED" if ok8 else "STEP 8 FAILED")

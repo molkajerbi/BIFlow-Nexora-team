@@ -4,7 +4,7 @@ EMBED_MODEL_ID = os.environ.get("BIFLOW_EMBED_MODEL", "intfloat/multilingual-e5-
 
 
 class SemanticSearch:
-    """Similarité de sens entre textes : embeddings multilingues + n-grammes de caractères (repli lexical sans Internet)."""
+    """Meaning similarity between texts: multilingual embeddings + character n-grams (lexical fallback without Internet)."""
 
     def __init__(self, corpus: list[str]):
         self.tfidf = TfidfVectorizer(analyzer="char_wb", ngram_range=(3, 5), sublinear_tf=True).fit(corpus)
@@ -41,14 +41,14 @@ def slot_text(c: dict, slot: str) -> str:
 def column_text(r) -> str:
     desc = BI_INPUT["tables"][r.table]["description"]
     values = ", ".join(list((r.top_values or {}).keys())[:5])
-    return f"{words(r.column)} ({desc}){' · valeurs : ' + values if values else ''}"
+    return f"{words(r.column)} ({desc}){' · values: ' + values if values else ''}"
 
 
 def dataset_text() -> str:
     parts = [BI_INPUT["domain"]]
     for t, s in BI_INPUT["tables"].items():
         cols = [words(c) for c, m in s["columns"].items() if m["semantic"] not in {"technical", "key", "calendar"}]
-        parts.append(f"{words(re.sub(r'^(dim|fact)_', '', t))} : {s['description']} · {', '.join(cols[:25])}")
+        parts.append(f"{words(re.sub(r'^(dim|fact)_', '', t))}: {s['description']} · {', '.join(cols[:25])}")
     return " | ".join(parts)
 
 
@@ -62,4 +62,4 @@ AUDIT.log("bi_knowledge", "search_engine_ready", {"mode": SEARCH.mode, "model": 
                                                   "fallback_reason": getattr(SEARCH, "error", None),
                                                   "seconds": round(time.perf_counter() - t0, 1)},
           level="INFO" if SEARCH.model else "WARNING")
-print(f"Moteur de recherche : {SEARCH.mode}" + (f" (repli : {SEARCH.error})" if SEARCH.model is None else f" · {EMBED_MODEL_ID}"))
+print(f"Search engine: {SEARCH.mode}" + (f" (fallback: {SEARCH.error})" if SEARCH.model is None else f" · {EMBED_MODEL_ID}"))

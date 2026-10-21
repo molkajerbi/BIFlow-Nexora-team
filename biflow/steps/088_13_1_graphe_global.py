@@ -9,7 +9,7 @@ class BIFlowState(TypedDict, total=False):
 
 
 def biflow_node(name: str):
-    """Même enveloppe que les sous-orchestrateurs (chronométrée, tracée, sans plantage), annotée avec l'état global."""
+    """Same wrapper as the sub-orchestrators (timed, traced, never crashing), annotated with the global state."""
     def decorator(fn):
         wrapper = graph_node(name)(fn)
         wrapper.__annotations__ = {"state": BIFlowState, "return": dict}
@@ -27,13 +27,13 @@ def part_update(state: BIFlowState, name: str, summary: dict, status: str = "run
 @biflow_node("preflight")
 def node_global_preflight(state: BIFlowState) -> dict:
     checks = checkpoint_raw_integrity()
-    raw_ok = bool(checks["contenu_inchangé"].all())
+    raw_ok = bool(checks["content_unchanged"].all())
     llm_ok = "LLM" in globals() and hasattr(LLM, "chat")
-    summary = {"dataset": str(CONFIG.data_dir.name), "tables": len(RAW.names), "données_brutes_intactes": raw_ok,
-               "llm": globals().get("LLM_MODEL_ID", "?") if llm_ok else "absent"}
+    summary = {"dataset": str(CONFIG.data_dir.name), "tables": len(RAW.names), "raw_data_intact": raw_ok,
+               "llm": globals().get("LLM_MODEL_ID", "?") if llm_ok else "missing"}
     if not raw_ok or not llm_ok:
         return part_update(state, "preflight", summary, "failed",
-                           "données brutes modifiées" if not raw_ok else "LLM non chargé (étape 3.1)")
+                           "raw data modified" if not raw_ok else "LLM not loaded (step 3.1)")
     return part_update(state, "preflight", summary)
 
 
@@ -42,9 +42,9 @@ def node_global_data_prep(state: BIFlowState) -> dict:
     global DATA_PREP_RESULT
     DATA_PREP_RESULT = run_data_preparation()
     r = DATA_PREP_RESULT
-    summary = {"statut": r["status"], "constats": (r.get("profiler") or {}).get("findings"),
+    summary = {"status": r["status"], "findings": (r.get("profiler") or {}).get("findings"),
                "corrections": (r.get("quality") or {}).get("corrections_applied"),
-               "qualité": (r.get("quality") or {}).get("quality_status"), "tables_étoile": (r.get("etl") or {}).get("tables_built")}
+               "quality": (r.get("quality") or {}).get("quality_status"), "star_tables": (r.get("etl") or {}).get("tables_built")}
     if r["status"] != "success":
         return part_update(state, "data_preparation", summary, r["status"] if r["status"] in STOP_STATES else "failed", r.get("error"))
     return part_update(state, "data_preparation", summary)
@@ -55,9 +55,9 @@ def node_global_bi(state: BIFlowState) -> dict:
     global BI_RESULT
     BI_RESULT = run_bi_insight(show=False)
     stages = BI_RESULT.get("stages", {})
-    summary = {"statut": BI_RESULT["status"], "secteur": ", ".join(BI_SECTORS or ["générique"]) if "BI_SECTORS" in globals() else None,
-               "kpi": (stages.get("kpi_agent") or {}).get("kpi_au_catalogue"), "insights": (stages.get("analyst_agent") or {}).get("insights"),
-               "dashboard": (stages.get("dashboard_agent") or {}).get("fichier")}
+    summary = {"status": BI_RESULT["status"], "sector": ", ".join(BI_SECTORS or ["generic"]) if "BI_SECTORS" in globals() else None,
+               "kpi": (stages.get("kpi_agent") or {}).get("kpis_in_catalog"), "insights": (stages.get("analyst_agent") or {}).get("insights"),
+               "dashboard": (stages.get("dashboard_agent") or {}).get("file")}
     if BI_RESULT["status"] != "success":
         return part_update(state, "bi_insight", summary, "failed", BI_RESULT.get("error"))
     return part_update(state, "bi_insight", summary)
@@ -65,25 +65,25 @@ def node_global_bi(state: BIFlowState) -> dict:
 
 @biflow_node("explainability")
 def node_global_xai(state: BIFlowState) -> dict:
-    """Toujours exécuté : explique un run réussi… ou pourquoi il s'est arrêté."""
+    """Always executed: explains a successful run… or why it stopped."""
     global DECISIONS, METHODS, XAI_INDEX
     DECISIONS = build_ledger()
     METHODS = method_records()
     XAI_INDEX = XAIIndex(LEDGER + METHODS)
     (XAI_DIR / "decision_ledger.json").write_text(canonical_json(LEDGER), encoding="utf-8")
-    summary = {"décisions": len(LEDGER), "règles": len(METHODS), "blocs_absents": len(LEDGER_ERRORS)}
+    summary = {"decisions": len(LEDGER), "rules": len(METHODS), "missing_blocks": len(LEDGER_ERRORS)}
     return {"parts": {**state.get("parts", {}), "explainability": summary}, "summary": summary}   # le statut est conservé
 
 
 def deliverables() -> dict:
-    """Manifeste de tous les livrables du run (chemins existants seulement)."""
+    """Manifest of all the run's deliverables (existing paths only)."""
     g = globals()
     paths = {
-        "entrepôt (modèle en étoile)": (DATA_PREP_RESULT.get("outputs") or {}).get("warehouse") if g.get("DATA_PREP_RESULT") else None,
-        "contrat de données": RUN_DIR / "data_contract.json", "journal d'audit": RUN_DIR / "audit_log.jsonl",
-        "échanges avec le LLM": g.get("LLM_LOG"), "catalogue de KPI": g.get("BI_DIR") and BI_DIR / "kpi_catalog.json",
-        "analyse et insights": g.get("BI_DIR") and BI_DIR / "analysis.json", "dashboard": g.get("DASHBOARD_PATH"),
-        "registre des décisions (XAI)": XAI_DIR / "decision_ledger.json", "règles du système (XAI)": XAI_DIR / "rules.json",
+        "warehouse (star schema)": (DATA_PREP_RESULT.get("outputs") or {}).get("warehouse") if g.get("DATA_PREP_RESULT") else None,
+        "data contract": RUN_DIR / "data_contract.json", "audit log": RUN_DIR / "audit_log.jsonl",
+        "exchanges with the LLM": g.get("LLM_LOG"), "KPI catalog": g.get("BI_DIR") and BI_DIR / "kpi_catalog.json",
+        "analysis and insights": g.get("BI_DIR") and BI_DIR / "analysis.json", "dashboard": g.get("DASHBOARD_PATH"),
+        "decision ledger (XAI)": XAI_DIR / "decision_ledger.json", "system rules (XAI)": XAI_DIR / "rules.json",
     }
     return {k: str(Path(v).resolve()) for k, v in paths.items() if v and Path(v).exists()}
 
@@ -101,17 +101,17 @@ def biflow_report(state: BIFlowState, status: str) -> dict:
 @biflow_node("deliver")
 def node_global_deliver(state: BIFlowState) -> dict:
     outputs = biflow_report({**state, "status": "success"}, "success")
-    return {"status": "success", "outputs": outputs, "summary": {"livrables": len(outputs)}}
+    return {"status": "success", "outputs": outputs, "summary": {"deliverables": len(outputs)}}
 
 
 @biflow_node("stop_report")
 def node_global_stop(state: BIFlowState) -> dict:
     outputs = biflow_report(state, state.get("status", "failed"))
-    return {"outputs": outputs, "summary": {"arrêt": state.get("stopped_at"), "raison": state.get("error")}}
+    return {"outputs": outputs, "summary": {"stop": state.get("stopped_at"), "reason": state.get("error")}}
 
 
 def continue_or_explain(state: BIFlowState) -> str:
-    """Après une partie : continuer, ou aller directement à l'explicabilité (qui expliquera l'arrêt)."""
+    """After a part: continue, or go straight to explainability (which will explain the stop)."""
     return "explain" if state.get("status") in STOP_STATES else "continue"
 
 
@@ -134,7 +134,7 @@ BIFLOW_GRAPH = g_builder.compile()
 
 BIFLOW_MERMAID = BIFLOW_GRAPH.get_graph().draw_mermaid()
 (RUN_DIR / "biflow_global_graph.mmd").write_text(BIFLOW_MERMAID, encoding="utf-8")
-print(f"Graphe global prêt (moteur : {GRAPH_ENGINE}) · enregistré dans biflow_global_graph.mmd")
+print(f"Global graph ready (engine: {GRAPH_ENGINE}) · saved to biflow_global_graph.mmd")
 try:
     raise ImportError("aperçu du graphe désactivé en déploiement")
     display(Image(BIFLOW_GRAPH.get_graph().draw_mermaid_png()))

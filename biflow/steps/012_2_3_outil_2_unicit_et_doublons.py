@@ -1,5 +1,5 @@
 @audited(agent="profiler",
-         description="Vérifie que le grain déclaré est unique, compte les doublons exacts et découvre les clés candidates.")
+         description="Checks that the declared grain is unique, counts exact duplicates and discovers candidate keys.")
 def check_grain(table: str) -> ToolResult:
     df = RAW.get(table)
     cols = list(DATA_CONTRACT[table]["columns"])

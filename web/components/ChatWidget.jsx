@@ -9,14 +9,15 @@ import { api } from "@/lib/api";
 import { markdownToHtml } from "@/lib/markdown";
 
 function Answer({ turn }) {
-  const verified = turn.mode === "LLM (vérifié)";
+  const verified = turn.mode === "LLM (vérifié)" || turn.mode === "LLM (verified)";
+  const refused = turn.refus_llm || turn.llm_rejections || [];
   return (
     <div className="msg-a">
-      <div dangerouslySetInnerHTML={{ __html: markdownToHtml(turn["réponse"]) }} />
+      <div dangerouslySetInnerHTML={{ __html: markdownToHtml(turn["réponse"] || turn.answer) }} />
       <div className="msg-meta">
         <Icon name={verified ? "shield" : "list"} size={12} />
         {verified ? "Rephrased by the AI · numbers verified by the code" : "Answer from the system rules"}
-        {turn.refus_llm && turn.refus_llm.length ? " · rephrasing rejected by the code" : ""}
+        {refused.length ? " · rephrasing rejected by the code" : ""}
         {turn.sources && turn.sources.length ? ` · sources: ${turn.sources.join(", ")}` : ""}
       </div>
     </div>

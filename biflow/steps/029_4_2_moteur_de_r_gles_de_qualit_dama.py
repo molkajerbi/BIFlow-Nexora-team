@@ -15,13 +15,13 @@ NULL_TOKENS = {"na", "n/a", "n.a.", "nan", "null", "(null)", "none", "nil", "-",
 
 
 def normalize_text(v: str) -> str:
-    """Forme de comparaison : sans accents, sans casse, espaces réduits ('São  Paulo ' -> 'sao paulo')."""
+    """Comparison form: no accents, no case, reduced spaces ('São  Paulo ' -> 'sao paulo')."""
     v = unicodedata.normalize("NFKD", str(v)).encode("ascii", "ignore").decode()
     return re.sub(r"\s+", " ", v).strip().lower()
 
 
 def variant_map(s: pd.Series) -> dict:
-    """Variantes d'écriture d'une même catégorie -> forme la plus fréquente ('SAO PAULO', 'Sao Paulo' -> 'sao paulo')."""
+    """Spelling variants of the same category -> most frequent form ('SAO PAULO', 'Sao Paulo' -> 'sao paulo')."""
     counts = s.dropna().str.strip().value_counts()
     groups = counts.groupby(counts.index.map(normalize_text))
     mapping = {}
@@ -43,39 +43,38 @@ def build_rules() -> list[Rule]:
     for t, spec in DATA_CONTRACT.items():
         cols = list(spec["columns"])
         if spec["grain"]:
-            rules.append(Rule(f"UNQ_{t}", t, "unicité", "blocking", f"grain {'+'.join(spec['grain'])} unique",
+            rules.append(Rule(f"UNQ_{t}", t, "uniqueness", "blocking", f"grain {'+'.join(spec['grain'])} unique",
                               lambda S, t=t, g=spec["grain"]: S[t].duplicated(subset=g, keep=False)))
         else:
-            rules.append(Rule(f"DUP_{t}", t, "unicité", "warning", "aucune ligne dupliquée à l'identique",
+            rules.append(Rule(f"DUP_{t}", t, "uniqueness", "warning", "no exactly duplicated row",
                               lambda S, t=t, c=cols: S[t].duplicated(subset=c, keep="first")))
         for c, sem in spec["columns"].items():
             if sem in {"category", "text"}:
-                rules.append(Rule(f"FMT_{t}.{c}", t, "format", "warning", f"{c} sans espaces parasites",
+                rules.append(Rule(f"FMT_{t}.{c}", t, "format", "warning", f"{c} without stray whitespace",
                                   lambda S, t=t, c=c: (S[t][c].notna() & (S[t][c] != S[t][c].str.strip())).astype(bool)))
             if sem in {"category", "text", "id", "zip"}:
-                rules.append(Rule(f"NUL_{t}.{c}", t, "complétude", "warning", f"{c} sans valeur vide déguisée (NA, null, -…)",
+                rules.append(Rule(f"NUL_{t}.{c}", t, "completeness", "warning", f"{c} without disguised empty value (NA, null, -…)",
                                   lambda S, t=t, c=c: S[t][c].str.strip().str.lower().isin(NULL_TOKENS).fillna(False).astype(bool)))
             if sem == "category" and c not in (spec["grain"] or []):       # jamais sur une clé : fusionner des clés n'est pas sans perte
-                rules.append(Rule(f"CAS_{t}.{c}", t, "format", "warning", f"{c} : une seule écriture par catégorie",
+                rules.append(Rule(f"CAS_{t}.{c}", t, "format", "warning", f"{c}: a single spelling per category",
                                   lambda S, t=t, c=c: is_variant(S[t][c])))
-        rules.append(Rule(f"TYP_{t}", t, "validité", "warning", "toutes les valeurs respectent leur type",
+        rules.append(Rule(f"TYP_{t}", t, "validity", "warning", "all values comply with their type",
                           lambda S, t=t: S[t]["_source_row_id"].isin(TYPE_FAILURES.loc[TYPE_FAILURES["table"] == t, "_source_row_id"])))
     for r in RELATIONSHIPS:
-        rules.append(Rule(f"REF_{r['child']}.{r['fk']}", r["child"], "intégrité", "warning",
-                          f"{r['fk']} existe dans {r['parent']}.{r['pk']}",
+        rules.append(Rule(f"REF_{r['child']}.{r['fk']}", r["child"], "integrity", "warning",
+                          f"{r['fk']} exists in {r['parent']}.{r['pk']}",
                           lambda S, r=r: (S[r["child"]][r["fk"]].notna()
                                           & ~S[r["child"]][r["fk"]].isin(S[r["parent"]][r["pk"]])).astype(bool)))
     # --- Doublons probables d'entités (même nom / mêmes attributs, identifiant différent) ---
     for t, spec in DATA_CONTRACT.items():
         identifying, context = near_duplicate_columns(t)
         if identifying:
-            rules.append(Rule(f"NDP_{t}", t, "unicité", "warning",
-                              f"doublon probable : même {' ou '.join(identifying)} (sans casse ni accents)"
-                              + (f" et même {', '.join(context)}" if context else "") + ", identifiant différent",
+            rules.append(Rule(f"NDP_{t}", t, "uniqueness", "warning",
+                              f"probable duplicate: same {' or '.join(identifying)} (ignoring case and accents)"
+                              + (f" and same {', '.join(context)}" if context else "") + ", different identifier",
                               lambda S, t=t, i=identifying, c=context: near_duplicate_mask(S[t], i, c)))
     # --- Règles métier APPRISES des données (dans une table, puis entre tables) ---
     return rules + learned_business_rules() + learned_cross_table_rules() + missing_and_outlier_rules()
-
 
 def normalized(s: pd.Series) -> pd.Series:
     return (s.astype("string").str.normalize("NFKD").str.encode("ascii", "ignore").str.decode("ascii")
@@ -83,8 +82,8 @@ def normalized(s: pd.Series) -> pd.Series:
 
 
 def near_duplicate_columns(t: str) -> tuple[list[str], list[str]]:
-    """Dans une dimension à clé unique : colonnes qui identifient presque chaque entité (nom, e-mail…)
-    et colonnes de contexte (ville, segment…) qui doivent aussi correspondre."""
+    """In a dimension with a unique key: columns that identify almost every entity (name, e-mail…)
+    and context columns (city, segment…) that must also match."""
     spec = DATA_CONTRACT[t]
     if TABLE_ROLES.get(t) != "dimension" or not spec["grain"] or len(spec["grain"]) != 1 or len(SILVER[t]) < 20:
         return [], []
@@ -95,7 +94,7 @@ def near_duplicate_columns(t: str) -> tuple[list[str], list[str]]:
 
 
 def near_duplicate_mask(df: pd.DataFrame, identifying: list[str], context: list[str]) -> pd.Series:
-    """Même nom (ou même e-mail…) une fois casse, accents et ponctuation retirés, et même contexte."""
+    """Same name (or same e-mail…) once case, accents and punctuation are removed, and same context."""
     ctx = pd.Series("", index=df.index)
     for c in context:
         ctx = ctx + "|" + normalized(df[c]).fillna("")
@@ -115,8 +114,8 @@ def child_total(S: dict, child: str, fk: str, measures: tuple) -> pd.Series:
 
 
 def learned_cross_table_rules(min_support: float = 0.95, min_rows: int = 30) -> list[Rule]:
-    """Cohérence ENTRE tables, apprise des données : si, pour ≥ 95 % des entités, un total calculé dans une table
-    égale un total d'une autre (ex. montant payé = prix + frais de port des articles), cela devient une règle."""
+    """Consistency ACROSS tables, learned from the data: if, for ≥ 95% of the entities, a total computed in one table
+    equals a total of another (e.g. amount paid = price + shipping cost of the items), it becomes a rule."""
     rules = []
     for p, spec in DATA_CONTRACT.items():
         if not spec["grain"] or len(spec["grain"]) != 1:
@@ -142,8 +141,8 @@ def learned_cross_table_rules(min_support: float = 0.95, min_rows: int = 30) -> 
             share = float(ok.mean())
             if share >= min_support:
                 label = lambda k: f"{' + '.join(k[2])} ({k[0]})"
-                rules.append(Rule(f"BUS_total_{p}.{'+'.join(a[2])}={'+'.join(b[2])}", p, "cohérence", "warning",
-                                  f"{label(a)} = {label(b)} par {pk} (respecté par {100 * share:.2f} %)",
+                rules.append(Rule(f"BUS_total_{p}.{'+'.join(a[2])}={'+'.join(b[2])}", p, "consistency", "warning",
+                                  f"{label(a)} = {label(b)} per {pk} (respected by {100 * share:.2f}%)",
                                   lambda S, p=p, pk=pk, a=a, b=b: cross_mismatch(S, p, pk, a, b)))
     return rules
 
@@ -158,7 +157,7 @@ def cross_mismatch(S: dict, p: str, pk: str, a: tuple, b: tuple) -> pd.Series:
 
 
 def learned_business_rules(min_support: float = 0.99, min_rows: int = 30) -> list[Rule]:
-    """Une contrainte respectée par ≥ 99 % des lignes devient une règle : les rares exceptions sont signalées."""
+    """A constraint respected by ≥ 99% of the rows becomes a rule: the rare exceptions are flagged."""
     rules, now = [], pd.Timestamp.now()
     for t, spec in DATA_CONTRACT.items():
         df, grain = SILVER[t], spec["grain"] or []
@@ -168,29 +167,29 @@ def learned_business_rules(min_support: float = 0.99, min_rows: int = 30) -> lis
             x = df[c].dropna()
             if sem in {"numeric", "integer"} and c not in grain and c not in fks and len(x) >= min_rows \
                     and float((x >= 0).mean()) >= min_support:
-                rules.append(Rule(f"BUS_non_negative_{t}.{c}", t, "plausibilité", "warning",
-                                  f"{c} ≥ 0 (respecté par {100 * float((x >= 0).mean()):.2f} % des lignes)",
+                rules.append(Rule(f"BUS_non_negative_{t}.{c}", t, "plausibility", "warning",
+                                  f"{c} ≥ 0 (respected by {100 * float((x >= 0).mean()):.2f}% of the rows)",
                                   lambda S, t=t, c=c: (S[t][c] < 0).fillna(False).astype(bool)))
             elif sem == "geo":
                 limit = 90 if set(snake(c).split("_")) & {"lat", "latitude"} else 180
-                rules.append(Rule(f"BUS_geo_range_{t}.{c}", t, "plausibilité", "warning", f"{c} entre -{limit} et {limit}",
+                rules.append(Rule(f"BUS_geo_range_{t}.{c}", t, "plausibility", "warning", f"{c} between -{limit} and {limit}",
                                   lambda S, t=t, c=c, m=limit: (S[t][c].abs() > m).fillna(False).astype(bool)))
             elif sem == "datetime":
-                rules.append(Rule(f"BUS_date_range_{t}.{c}", t, "plausibilité", "warning", f"{c} entre 1900 et aujourd'hui + 1 an",
+                rules.append(Rule(f"BUS_date_range_{t}.{c}", t, "plausibility", "warning", f"{c} between 1900 and today + 1 year",
                                   lambda S, t=t, c=c: ((S[t][c] < pd.Timestamp("1900-01-01"))
                                                        | (S[t][c] > now + pd.DateOffset(years=1))).fillna(False).astype(bool)))
         for a, b in itertools.permutations(dates, 2):           # ordre chronologique appris entre deux dates
             both = df[a].notna() & df[b].notna()
             if both.sum() >= min_rows and float((df.loc[both, a] <= df.loc[both, b]).mean()) >= min_support \
                     and float((df.loc[both, b] <= df.loc[both, a]).mean()) < min_support:
-                rules.append(Rule(f"BUS_date_order_{t}.{a}<={b}", t, "cohérence", "warning",
-                                  f"{a} ≤ {b} (respecté par {100 * float((df.loc[both, a] <= df.loc[both, b]).mean()):.2f} %)",
+                rules.append(Rule(f"BUS_date_order_{t}.{a}<={b}", t, "consistency", "warning",
+                                  f"{a} ≤ {b} (respected by {100 * float((df.loc[both, a] <= df.loc[both, b]).mean()):.2f}%)",
                                   lambda S, t=t, a=a, b=b: (S[t][a] > S[t][b]).fillna(False).astype(bool)))
     return rules
 
 
 def run_rules(S: dict, rules: list[Rule]) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Exécute toutes les règles. Renvoie les violations (une ligne par ligne fautive) et le résumé par règle."""
+    """Runs all the rules. Returns the violations (one row per faulty row) and the summary per rule."""
     issues, summary = [], []
     for rule in rules:
         mask = pd.Series(rule.check(S), index=S[rule.table].index).fillna(False).astype(bool)
@@ -212,6 +211,6 @@ AUDIT.log("quality_agent", "rules_executed",
            "violations": int(RULES_BEFORE["violations"].sum()),
            "blocking_violations": int(RULES_BEFORE.query("severity == 'blocking'")["violations"].sum())})
 n_blocking = int(RULES_BEFORE.loc[RULES_BEFORE["severity"] == "blocking", "violations"].sum())
-print(f"{len(RULES)} règles (dont {sum(r.id.startswith('BUS_') for r in RULES)} apprises des données) · "
-      f"{int((RULES_BEFORE['violations'] > 0).sum())} en violation · {n_blocking} violation(s) bloquante(s)")
+print(f"{len(RULES)} rules ({sum(r.id.startswith('BUS_') for r in RULES)} learned from the data) · "
+      f"{int((RULES_BEFORE['violations'] > 0).sum())} violated · {n_blocking} blocking violation(s)")
 RULES_BEFORE.query("violations > 0").sort_values(["severity", "violations"], ascending=[True, False])

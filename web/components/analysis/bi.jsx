@@ -74,7 +74,7 @@ export function Insights({ jobId, res }) {
   const inv = bi.investigations || [];
   const period = Object.values(bi.reliable_periods || {}).find((p) => p && p.length);
   const p = (x) => `${String(x % 100).padStart(2, "0")}/${Math.floor(x / 100)}`;
-  const signals = (facts || []).filter((f) => f.type !== "valeur");
+  const signals = (facts || []).filter((f) => f.type !== "valeur" && f.type !== "value");
   return (
     <>
       <Section title="What the analysis found" lead="Each KPI tracked month by month goes through five statistical tests: trend, recent change, year over year, unusual month, level shift. The signals kept are broken down by segment to find where the change happens. The AI writes the insights; the code re-checks every number before publishing them.">

@@ -3,7 +3,7 @@ def utc_now() -> str:
 
 
 def _json_default(obj: Any) -> Any:
-    """Rend sérialisables les types numpy / pandas / Path."""
+    """Makes numpy / pandas / Path types serializable."""
     if isinstance(obj, (np.integer,)):
         return int(obj)
     if isinstance(obj, (np.floating,)):
@@ -22,7 +22,7 @@ def _json_default(obj: Any) -> Any:
 
 
 def canonical_json(obj: Any) -> str:
-    """JSON déterministe (clés triées) : même contenu => même hash."""
+    """Deterministic JSON (sorted keys): same content => same hash."""
     return json.dumps(obj, sort_keys=True, ensure_ascii=False, default=_json_default)
 
 
@@ -31,7 +31,7 @@ def sha256_text(text: str) -> str:
 
 
 class AuditTrail:
-    """Journal d'audit append-only, chaîné par hash SHA-256."""
+    """Append-only audit log, chained by SHA-256 hashes."""
 
     GENESIS = "0" * 64
     LEVELS = {"INFO", "WARNING", "ERROR", "DECISION"}
@@ -43,7 +43,7 @@ class AuditTrail:
 
     def log(self, agent: str, action: str, details: dict | None = None, level: str = "INFO") -> dict:
         if level not in self.LEVELS:
-            raise ValueError(f"Niveau inconnu : {level}")
+            raise ValueError(f"Unknown level: {level}")
         event = {
             "seq": len(self.events) + 1,
             "ts": utc_now(),
@@ -61,16 +61,16 @@ class AuditTrail:
         return event
 
     def verify(self) -> tuple[bool, str]:
-        """Recalcule toute la chaîne et localise la première rupture éventuelle."""
+        """Recomputes the whole chain and locates the first break, if any."""
         prev = self.GENESIS
         for e in self.events:
             body = {k: v for k, v in e.items() if k != "hash"}
             if e["prev_hash"] != prev:
-                return False, f"chaîne rompue à l'événement {e['seq']} (prev_hash incorrect)"
+                return False, f"chain broken at event {e['seq']} (wrong prev_hash)"
             if sha256_text(canonical_json(body)) != e["hash"]:
-                return False, f"événement {e['seq']} modifié après coup"
+                return False, f"event {e['seq']} modified afterwards"
             prev = e["hash"]
-        return True, f"{len(self.events)} événements, chaîne intègre"
+        return True, f"{len(self.events)} events, chain intact"
 
     def to_frame(self) -> pd.DataFrame:
         df = pd.DataFrame(self.events)

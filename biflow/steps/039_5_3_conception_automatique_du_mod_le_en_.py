@@ -1,5 +1,5 @@
 def q(name: str) -> str:
-    """Nom SQL protégé (gère les espaces et les majuscules : "Order Date")."""
+    """Quoted SQL name (handles spaces and capitals: "Order Date")."""
     return '"' + str(name).replace('"', '""') + '"'
 
 
@@ -10,10 +10,8 @@ def silver_sum(table: str, col: str, mask: pd.Series | None = None) -> float:
 
 TECH = {"_source_row_id", "_dq_flags"}
 NUMERIC = {"numeric", "integer"}
-
-
 def dimension_key(t: str) -> list[str]:
-    """Clé d'une dimension : son grain, sinon la clé par laquelle on la référence (dimension agrégée), sinon le lignage."""
+    """Key of a dimension: its grain, otherwise the key by which it is referenced (aggregated dimension), otherwise the lineage."""
     if DATA_CONTRACT[t]["grain"]:
         return DATA_CONTRACT[t]["grain"]
     refs = [r["pk"] for r in RELATIONSHIPS if r["parent"] == t]
@@ -25,7 +23,7 @@ def is_aggregated(t: str) -> bool:
 
 
 def dim_source_sql(t: str) -> tuple[str, list[str]]:
-    """Requête de base d'une dimension (agrégée si la table a plusieurs lignes par clé) et ses colonnes."""
+    """Base query of a dimension (aggregated if the table has several rows per key) and its columns."""
     key, cols = dimension_key(t), DATA_CONTRACT[t]["columns"]
     if is_aggregated(t):
         k = key[0]
@@ -37,7 +35,7 @@ def dim_source_sql(t: str) -> tuple[str, list[str]]:
 
 
 def orphan_keys(t: str, key: str) -> set:
-    """Valeurs de clés référencées par d'autres tables mais absentes de la dimension (→ membres « inconnus »)."""
+    """Key values referenced by other tables but missing from the dimension (→ "unknown" members)."""
     known, orphans = set(SILVER[t][key].dropna()), set()
     for r in RELATIONSHIPS:
         if r["parent"] == t and r["pk"] == key and r["child"] in SILVER:
@@ -46,8 +44,8 @@ def orphan_keys(t: str, key: str) -> set:
 
 
 def extracted_dimensions(t: str, min_share: float = 0.99) -> list[dict]:
-    """Normalisation automatique : dans une table de faits « à plat », un identifiant (ex. Customer ID) et les colonnes
-    qui en dépendent fonctionnellement (Customer Name, Segment) forment une dimension."""
+    """Automatic normalization: in a "flat" fact table, an identifier (e.g. Customer ID) and the columns
+    that functionally depend on it (Customer Name, Segment) form a dimension."""
     df, spec = SILVER[t], DATA_CONTRACT[t]
     used = set(spec["grain"] or []) | {r["fk"] for r in RELATIONSHIPS if r["child"] == t}
     out = []
@@ -67,14 +65,14 @@ def extracted_dimensions(t: str, min_share: float = 0.99) -> list[dict]:
 
 
 def design_star_schema() -> dict:
-    """Conçoit le modèle en étoile à partir du contrat : aucune ligne écrite à la main pour un dataset particulier."""
-    facts = [t for t in DATA_CONTRACT if TABLE_ROLES[t] == "fait"]
-    dims = [t for t in DATA_CONTRACT if TABLE_ROLES[t] != "fait"]
+    """Designs the star schema from the contract: not a single line written by hand for a particular dataset."""
+    facts = [t for t in DATA_CONTRACT if TABLE_ROLES[t] == "fact"]
+    dims = [t for t in DATA_CONTRACT if TABLE_ROLES[t] != "fact"]
     name = {t: ("fact_" if t in facts else "dim_") + t for t in DATA_CONTRACT}
     templates = {}
     if "stg_dim_date" in STAGING:
         templates["dim_date"] = {"type": "dimension", "grain": ["date_key"], "depends_on": [],
-                                 "description": "calendrier continu (année, trimestre, mois, semaine, week-end)",
+                                 "description": "continuous calendar (year, quarter, month, week, weekend)",
                                  "sql": "SELECT * FROM stg_dim_date", "expect_rows": lambda: len(STAGING["stg_dim_date"])}
 
     # ---------- Dimensions : agrégées si besoin, enrichies (aplaties), avec membres « inconnus » ----------
@@ -101,16 +99,16 @@ def design_star_schema() -> dict:
             orphan_sql = " UNION ".join(
                 f"SELECT DISTINCT {q(r['fk'])} AS k FROM stg_{r['child']} WHERE {q(r['fk'])} IS NOT NULL "
                 f"AND {q(r['fk'])} NOT IN (SELECT {q(k)} FROM stg_{t} WHERE {q(k)} IS NOT NULL)" for r in refs)
-            unknown = [("u.k" if c == k else "'inconnu:' || CAST(u.k AS VARCHAR)" if c == "_source_row_id" else "NULL")
+            unknown = [("u.k" if c == k else "'unknown:' || CAST(u.k AS VARCHAR)" if c == "_source_row_id" else "NULL")
                        + f" AS {q(c)}"
                        for c in out_cols]
             sql = f"{body} UNION ALL SELECT {', '.join(unknown)}, 1 AS is_unknown_member FROM ({orphan_sql}) u"
         base_rows = (lambda t=t, key=key: SILVER[t][key[0]].nunique()) if is_aggregated(t) else (lambda t=t: len(SILVER[t]))
         templates[name[t]] = {
             "type": "dimension", "grain": key, "depends_on": [],
-            "description": (f"dimension issue de {t}" + (" (agrégée par clé)" if is_aggregated(t) else "")
-                            + (f", enrichie avec {', '.join(sorted({r['parent'] for r in RELATIONSHIPS if r['child'] == t and r['parent'] in dims}))}"
-                               if joins else "") + (", membres « inconnus » pour les clés orphelines" if refs else "")),
+            "description": (f"dimension built from {t}" + (" (aggregated by key)" if is_aggregated(t) else "")
+                            + (f", enriched with {', '.join(sorted({r['parent'] for r in RELATIONSHIPS if r['child'] == t and r['parent'] in dims}))}"
+                               if joins else "") + (', "unknown" members for orphan keys' if refs else "")),
             "sql": sql, "expect_rows": lambda b=base_rows, o=n_orphans: b() + o(),
             "lineage": None if is_aggregated(t) else t}
 
@@ -171,7 +169,7 @@ def design_star_schema() -> dict:
             dname = f"dim_{stem}" if f"dim_{stem}" not in templates and stem not in DATA_CONTRACT else f"dim_{t}_{stem}"
             parts = [q(e["key"])] + [f"MIN({q(a)}) AS {q(a)}" for a in e["attributes"]]
             templates[dname] = {"type": "dimension", "grain": [e["key"]], "depends_on": [],
-                                "description": f"dimension extraite de {t} : {e['key']} -> {', '.join(e['attributes'])}",
+                                "description": f"dimension extracted from {t}: {e['key']} -> {', '.join(e['attributes'])}",
                                 "sql": f"SELECT {', '.join(parts)}, COUNT(*) AS source_rows FROM stg_{t} "
                                        f"WHERE {q(e['key'])} IS NOT NULL GROUP BY {q(e['key'])}",
                                 "expect_rows": lambda t=t, k=e["key"]: SILVER[t][k].nunique()}
@@ -179,9 +177,9 @@ def design_star_schema() -> dict:
         measures = [c for c, s in spec["columns"].items() if s in NUMERIC and c not in grain and c not in fks]
         with_cte = f"WITH {', '.join(ctes)} " if ctes else ""
         templates[name[t]] = {
-            "type": "fait", "grain": grain, "depends_on": sorted({target for target, _ in fks.values()}),
-            "description": f"fait issu de {t} · {len(fks)} clé(s) · mesures : {', '.join(measures) or 'aucune'}"
-                           + (f" · agrégats séparés de {', '.join(header_children)}" if header_children else ""),
+            "type": "fact", "grain": grain, "depends_on": sorted({target for target, _ in fks.values()}),
+            "description": f"fact built from {t} · {len(fks)} key(s) · measures: {', '.join(measures) or 'none'}"
+                           + (f" · separate aggregates of {', '.join(header_children)}" if header_children else ""),
             "sql": f"{with_cte}SELECT {', '.join(select)} FROM stg_{t} b {' '.join(joins)}",
             "expect_rows": lambda t=t: len(SILVER[t]), "lineage": t,
             "sums": {**{m: (lambda t=t, m=m: silver_sum(t, m)) for m in measures}, **header_sums},
@@ -202,19 +200,19 @@ def design_star_schema() -> dict:
 
 
 def key_strings(s: pd.Series) -> pd.Series:
-    """Normalise des clés pour les comparer (un entier relu en float, 20170101.0, redevient 20170101)."""
+    """Normalizes keys to compare them (an integer read back as a float, 20170101.0, becomes 20170101 again)."""
     s = s.dropna()
     return (pd.to_numeric(s).astype("int64") if pd.api.types.is_numeric_dtype(s) else s).astype(str)
 
 
 def test_table(name: str) -> dict:
-    """Tests exécutés par le superviseur après chaque construction (jamais par le LLM)."""
+    """Tests run by the supervisor after each build (never by the LLM)."""
     spec, df = ETL_TEMPLATES[name], WH.query(f"SELECT * FROM {name}")
     tests = {"grain_unique": bool(not df.duplicated(subset=spec["grain"]).any() and df[spec["grain"]].notna().all().all()),
              "row_count": len(df) == spec["expect_rows"]()}
     if spec.get("lineage"):
         ids = df["_source_row_id"].dropna()
-        tests["lineage_complete"] = set(ids[~ids.astype(str).str.startswith("inconnu:")]) == set(SILVER[spec["lineage"]]["_source_row_id"])
+        tests["lineage_complete"] = set(ids[~ids.astype(str).str.startswith("unknown:")]) == set(SILVER[spec["lineage"]]["_source_row_id"])
     for col, expected in spec.get("sums", {}).items():
         exp = expected()
         tests[f"sum_{col}"] = abs(float(pd.to_numeric(df[col]).sum()) - exp) <= 0.01 + 1e-9 * abs(exp)
@@ -232,9 +230,9 @@ ETL_TEMPLATES = design_star_schema()
 TEMPLATES_SHA256 = sha256_text(canonical_json({k: v["sql"] for k, v in ETL_TEMPLATES.items()}))
 AUDIT.log("etl_agent", "star_schema_designed", {"templates": {k: v["description"] for k, v in ETL_TEMPLATES.items()},
                                                 "templates_sha256": TEMPLATES_SHA256})
-print(f"Modèle en étoile conçu automatiquement : "
+print(f"Star schema designed automatically: "
       f"{sum(v['type'] == 'dimension' for v in ETL_TEMPLATES.values())} dimension(s), "
-      f"{sum(v['type'] == 'fait' for v in ETL_TEMPLATES.values())} fait(s)")
-pd.DataFrame([{"template": k, "type": v["type"], "grain": " + ".join(v["grain"]), "dépend_de": v["depends_on"],
+      f"{sum(v['type'] == 'fact' for v in ETL_TEMPLATES.values())} fact(s)")
+pd.DataFrame([{"template": k, "type": v["type"], "grain": " + ".join(v["grain"]), "depends_on": v["depends_on"],
                "tests": 2 + bool(v.get("lineage")) + len(v.get("sums", {})) + len(v.get("fks", {})),
                "description": v["description"]} for k, v in ETL_TEMPLATES.items()])

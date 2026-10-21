@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-NOTEBOOK = ROOT / "notebooks" / "biflow-pipeline-complet.ipynb"
+NOTEBOOK = ROOT / "notebooks" / "biflowenglisch.ipynb"
 STEPS_DIR = Path(__file__).resolve().parent / "steps"
 
 # Cellule LLM du notebook (GPU) : remplacée par le LLM Ollama (voir engine.py)
@@ -26,6 +26,7 @@ SKIPPED = {
     "BIFLOW_RESULT = run_biflow()": "relance de A à Z (13.3)",
     "parts = BIFLOW_RESULT.get(": "bilan de la relance 13.3 (13.4)",
     'ask("Résume le travail de BIFlow de A à Z.", mode="règles")': "démo du chat (13.5) : le chat est dans l'interface",
+    'ask("Summarise BIFlow\'s work from A to Z.", mode="rules")': "démo du chat (13.5) : le chat est dans l'interface",
 }
 
 # Adaptations au déploiement (le code du notebook supposait Linux + GPU + Jupyter, comme sur Kaggle)
@@ -41,7 +42,7 @@ PATCHES = [
     ("    from IPython.display import Image\n", "    raise ImportError(\"aperçu du graphe désactivé en déploiement\")\n"),
     ("    from IPython.display import HTML\n", "    raise ImportError(\"aperçu HTML désactivé en déploiement\")\n"),
     # questions de démonstration du chat : réponses des règles (rapides) ; le chat avec le LLM est dans l'interface
-    ("for demo_q in DEMO_QUESTIONS:\n    ask(demo_q)", "for demo_q in DEMO_QUESTIONS:\n    ask(demo_q, mode=\"règles\", show=False)"),
+    ("for demo_q in DEMO_QUESTIONS:\n    ask(demo_q)", "for demo_q in DEMO_QUESTIONS:\n    ask(demo_q, mode=\"rules\", show=False)"),
 ]
 
 

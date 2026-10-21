@@ -59,7 +59,7 @@ def create_job(files: list[tuple[str, bytes]] | None, name: str, model: str, inp
             (input_dir / Path(filename).name).write_bytes(data)
     if not any(p.suffix.lower() in DATA_EXTENSIONS for p in input_dir.rglob("*") if p.is_file()):
         shutil.rmtree(job_dir)
-        raise ValueError("Aucun fichier de données reconnu (CSV, TSV, TXT, Excel, Parquet, JSON, ou un zip qui en contient).")
+        raise ValueError("No data file recognized (CSV, TSV, TXT, Excel, Parquet, JSON, or a zip that contains them).")
     meta = {"id": job_id, "name": name or job_id, "model": model, "owner": owner,
             "created": datetime.now().isoformat(timespec="seconds"), "from_job": input_from}
     (job_dir / "job.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")

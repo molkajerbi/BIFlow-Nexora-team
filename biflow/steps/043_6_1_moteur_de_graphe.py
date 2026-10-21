@@ -14,7 +14,7 @@ if GRAPH_ENGINE == "mini":
     START, END = "__start__", "__end__"
 
     class _CompiledMiniGraph:
-        """Exécuteur minimal reproduisant le sous-ensemble de l'API LangGraph utilisé ici."""
+        """Minimal executor reproducing the subset of the LangGraph API used here."""
 
         def __init__(self, nodes, edges, conditional):
             self.nodes, self.edges, self.conditional = nodes, edges, conditional
@@ -57,4 +57,4 @@ if GRAPH_ENGINE == "mini":
         def compile(self):
             return _CompiledMiniGraph(self.nodes, self.edges, self.conditional)
 
-print(f"Moteur d'orchestration : {GRAPH_ENGINE}")
+print(f"Orchestration engine: {GRAPH_ENGINE}")

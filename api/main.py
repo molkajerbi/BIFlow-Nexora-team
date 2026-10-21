@@ -422,7 +422,10 @@ def chat_session(job_id: str):
         if cached and cached[0] == stamp:
             return cached[1]
         llm = OllamaLLM(model_id=jobs.meta(job_id).get("model"), url=OLLAMA_URL, cache_dir=jobs.ROOT / "biflow_cache")
-        session = XAISession(jobs.JOBS_DIR / job_id, llm=llm)
+        try:
+            session = XAISession(jobs.JOBS_DIR / job_id, llm=llm)
+        except RuntimeError as exc:                  # analyse faite avec l'ancien notebook, ou XAI absent
+            raise HTTPException(409, f"The assistant is not available for this analysis: {exc}.")
         _CHATS[job_id] = (stamp, session)
         return session
 

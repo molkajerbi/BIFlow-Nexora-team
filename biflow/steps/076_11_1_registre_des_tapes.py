@@ -2,7 +2,7 @@ import contextlib
 import io
 
 STAGES = [
-    {"node": "bridge_agent", "step": 7, "agent": "Pont & base de connaissances", "checkpoint": "ok7", "checks": "checks7",
+    {"node": "bridge_agent", "step": 7, "agent": "Bridge & knowledge base", "checkpoint": "ok7", "checks": "checks7",
      "cells": [r"^TECH_COLUMNS\b[^\n=]*=", r"^ROLES\b[^\n=]*=", r"^def M\(", r"^UNITS\b[^\n=]*=", r"^class SemanticSearch\b",
                r"^INV_INDEX\b[^\n=]*=", r"^MIN_SECTOR_KPIS\b[^\n=]*=", r"^def kpi_relevance\(", r"^checks7\b[^\n=]*="]},
     {"node": "kpi_agent", "step": 8, "agent": "KPI Agent", "checkpoint": "ok8", "checks": "checks8",
@@ -22,7 +22,7 @@ STAGE_ALIASES = {**{s["node"]: s["node"] for s in STAGES}, **{str(s["step"]): s[
 
 
 def stage_sources(stage: dict) -> list[str]:
-    """Dernière version exécutée de chaque cellule de l'étape, dans l'ordre du registre."""
+    """Last executed version of each cell of the step, in registry order."""
     history = globals().get("In") or globals().get("_ih") or []
     out, missing = [], []
     for i, pattern in enumerate(stage["cells"], 1):
@@ -30,17 +30,17 @@ def stage_sources(stage: dict) -> list[str]:
                     and re.search(pattern, h, re.M)), None)
         (out.append(src) if src else missing.append(f"{stage['step']}.{i}"))
     if missing:
-        raise RuntimeError(f"cellule(s) {', '.join(missing)} jamais exécutée(s) dans cette session : exécutez-les une fois "
-                           f"à la main (ou « Run all ») avant d'utiliser l'orchestrateur")
+        raise RuntimeError(f"cell(s) {', '.join(missing)} never executed in this session: run them once "
+                           f"by hand (or \"Run all\") before using the orchestrator")
     return out
 
 
 rows = []
 for s in STAGES:
     try:
-        n, note = len(stage_sources(s)), "prête"
+        n, note = len(stage_sources(s)), "ready"
     except RuntimeError as e:
         n, note = 0, str(e)
-    rows.append({"étape": s["step"], "nœud": s["node"], "agent": s["agent"], "cellules trouvées": f"{n}/{len(s['cells'])}",
-                 "point de contrôle": s["checkpoint"], "état": note})
+    rows.append({"step": s["step"], "node": s["node"], "agent": s["agent"], "cells found": f"{n}/{len(s['cells'])}",
+                 "checkpoint": s["checkpoint"], "state": note})
 pd.DataFrame(rows)

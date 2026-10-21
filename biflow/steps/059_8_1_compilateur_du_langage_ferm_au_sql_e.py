@@ -8,18 +8,18 @@ INV = BI_INVENTORY.set_index(["table", "column"])
 
 
 def lit(v) -> str:
-    """Littéral SQL texte (apostrophes doublées)."""
+    """SQL text literal (doubled apostrophes)."""
     return "'" + str(v).replace("'", "''") + "'"
 
 
 def reference_date() -> str | None:
-    """Date d'où partent les délais calculés par la partie 1 (« A_to_B_days » → A) ; sinon la date la mieux renseignée."""
+    """Date the durations computed by part 1 start from ("A_to_B_days" → A); otherwise the best-filled date."""
     starts = [re.match(r"(.+)_to_.+_days$", c).group(1) for s in BI_INPUT["tables"].values() for c, m in s["columns"].items()
               if m.get("derived") == "duration" and re.match(r"(.+)_to_.+_days$", c)]
     if starts:
         return pd.Series(starts).mode()[0]
     dates = BI_INVENTORY[BI_INVENTORY["semantic"] == "datetime"].assign(
-        rebuilt=lambda d: d["origin"].str.contains("date reconstituée"))   # date que le dataset avait éclatée (ex. date d'arrivée)
+        rebuilt=lambda d: d["origin"].str.contains("rebuilt date"))   # date que le dataset avait éclatée (ex. date d'arrivée)
     dates = dates.sort_values(["rebuilt", "non_null_pct", "column"], ascending=[False, False, True])
     return dates["column"].iloc[0] if len(dates) else None
 
@@ -28,7 +28,7 @@ REF_DATE = reference_date()
 
 
 def time_key(table: str) -> str | None:
-    """Clé de date (AAAAMMJJ) utilisée pour les séries mensuelles d'une table de base."""
+    """Date key (YYYYMMDD) used for the monthly series of a base table."""
     cols = BI_INPUT["tables"][table]["columns"]
     if REF_DATE and f"{REF_DATE}_date_key" in cols:
         return f"{REF_DATE}_date_key"
@@ -37,7 +37,7 @@ def time_key(table: str) -> str | None:
 
 
 class KPIQuery:
-    """Compile une fiche liée à des colonnes : clause FROM avec jointures, expressions SQL des mesures et des conditions."""
+    """Compiles a card bound to columns: FROM clause with joins, SQL expressions of the measures and conditions."""
 
     def __init__(self, card: dict, binding: dict):
         self.card, self.b = card, binding
@@ -97,7 +97,7 @@ class KPIQuery:
 
 
 def run_sql(card: dict, binding: dict) -> dict:
-    """Calcule un KPI dans l'entrepôt. Renvoie la valeur, la requête et, si possible, la série mensuelle."""
+    """Computes a KPI in the warehouse. Returns the value, the query and, if possible, the monthly series."""
     q, f = KPIQuery(card, binding), card["formula"]
     out = {"series": None}
     if f["kind"] in {"value", "ratio", "rate"}:
@@ -127,8 +127,8 @@ def run_sql(card: dict, binding: dict) -> dict:
 
 
 def growth_from_series(s: pd.DataFrame) -> tuple[float | None, dict]:
-    """Évolution entre les deux dernières périodes COMPLÈTES : les périodes finales anormalement faibles
-    (extraction incomplète, moins de 20 % de la médiane des 6 précédentes) sont écartées et signalées."""
+    """Change between the last two COMPLETE periods: abnormally low final periods
+    (incomplete extraction, less than 20% of the median of the 6 previous ones) are discarded and reported."""
     s = s.dropna(subset=["v"]).sort_values("period").reset_index(drop=True)
     dropped = []
     while len(s) >= 3 and s["v"].iloc[-1] < 0.2 * s["v"].iloc[-7:-1].median():
@@ -155,7 +155,7 @@ _FRAMES: dict = {}
 
 
 def kpi_frame(binding: dict) -> pd.DataFrame:
-    """Table de base + colonnes jointes, assemblées en pandas (colonnes nommées « table.colonne »)."""
+    """Base table + joined columns, assembled in pandas (columns named "table.column")."""
     fact = binding["fact"]
     tables = tuple(sorted({t for t, _ in binding["slots"].values()} - {fact}))
     if (fact, tables) not in _FRAMES:
@@ -206,7 +206,7 @@ def run_pandas(card: dict, binding: dict) -> float | None:
         return float(x.sum()) if m["agg"] == "sum" else float(x.mean())
 
     def grouped(m, keys):
-        """Mesure par groupe (mois, catégorie…), calculée par groupby : indépendante de la requête SQL."""
+        """Measure per group (month, category…), computed with groupby: independent of the SQL query."""
         if m["agg"] == "add":
             return sum(grouped(t, keys).fillna(0) for t in m["terms"])
         mask = cond(m["where"]).fillna(False).astype(bool) if m.get("where") else pd.Series(True, index=df.index)
@@ -246,7 +246,7 @@ def readable(card: dict, binding: dict) -> str:
     def cond(w):
         op = w["op"]
         if op == "dq_flagged":
-            return "ligne signalée par la qualité"
+            return "row flagged by quality"
         return {"is_true": lambda: f"{c(w['slot'])} = {p['true_value'][w['slot']]}",
                 "in_values": lambda: f"{c(w['slot'])} ∈ {{{', '.join(map(str, p['values'][w['slot']]))}}}",
                 "negative": lambda: f"{c(w['slot'])} < 0",
@@ -259,15 +259,15 @@ def readable(card: dict, binding: dict) -> str:
         target = c(m["slot"]) if m.get("slot") else "*"
         base = {"count": f"COUNT({target})", "count_distinct": f"COUNT(DISTINCT {target})",
                 "sum": f"SUM({target})", "avg": f"AVG({target})"}[m["agg"]]
-        return base + (f" [si {cond(m['where'])}]" if m.get("where") else "")
+        return base + (f" [if {cond(m['where'])}]" if m.get("where") else "")
 
     f = card["formula"]
     return {"value": lambda: meas(f["measure"]), "ratio": lambda: f"{meas(f['num'])} / {meas(f['den'])}",
             "rate": lambda: f"{meas(f['num'])} / {meas(f['den'])}",
-            "growth": lambda: f"évolution mensuelle de {meas(f['measure'])} (date : {c(f['date'])})",
-            "top_share": lambda: f"part des {int(f['top']) if f['top'] >= 1 else format(f['top'], '.0%')} premiers {c(f['by'])} "
-                                 f"dans {meas(f['measure'])}",
-            "repeat_rate": lambda: f"part des {c(f['entity'])} avec au moins 2 {c(f['transaction'])} distincts"}[f["kind"]]()
+            "growth": lambda: f"monthly change of {meas(f['measure'])} (date: {c(f['date'])})",
+            "top_share": lambda: f"share of the top {int(f['top']) if f['top'] >= 1 else format(f['top'], '.0%')} {c(f['by'])} "
+                                 f"in {meas(f['measure'])}",
+            "repeat_rate": lambda: f"share of the {c(f['entity'])} with at least 2 distinct {c(f['transaction'])}"}[f["kind"]]()
 
 
-print(f"Compilateur prêt · moteur SQL : {BI_ENGINE} · date de référence : {REF_DATE or 'aucune (pas de série temporelle)'}")
+print(f"Compiler ready · SQL engine: {BI_ENGINE} · reference date: {REF_DATE or 'none (no time series)'}")

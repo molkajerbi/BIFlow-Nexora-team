@@ -16,7 +16,7 @@ STOP_STATES = {"failed", "blocked"}
 
 
 def graph_node(name: str):
-    """Chaque nœud est chronométré, tracé dans l'audit, et une exception devient un état 'failed' (pas un crash)."""
+    """Each node is timed, traced in the audit log, and an exception becomes a 'failed' state (not a crash)."""
     def decorator(fn):
         def wrapper(state: DataPrepState) -> dict:
             t0 = time.perf_counter()
@@ -24,7 +24,7 @@ def graph_node(name: str):
             try:
                 update = fn(state) or {}
             except Exception as exc:
-                update = {"status": "failed", "error": f"{name} : {type(exc).__name__} : {exc}"}
+                update = {"status": "failed", "error": f"{name}: {type(exc).__name__}: {exc}"}
             summary = update.pop("summary", None)
             entry = {"node": name, "seconds": round(time.perf_counter() - t0, 1),
                      "status": update.get("status", state.get("status")), "summary": summary}
@@ -38,8 +38,8 @@ def graph_node(name: str):
 
 
 def route(state: DataPrepState) -> str:
-    """Après chaque nœud : continuer, ou aller au rapport si le pipeline doit s'arrêter."""
+    """After each node: continue, or go to the report if the pipeline must stop."""
     return "stop" if state.get("status") in STOP_STATES else "continue"
 
 
-print("État partagé et enveloppe des nœuds prêts")
+print("Shared state and node wrapper ready")

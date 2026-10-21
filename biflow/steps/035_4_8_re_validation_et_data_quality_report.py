@@ -8,11 +8,11 @@ for t in SILVER:
     SILVER[t]["_dq_flags"] = SILVER[t]["_source_row_id"].map(table_flags).astype("string")
 mark_estimated_values()                                  # lignes dont une valeur a été estimée (4.1 bis)
 
-comparison = pd.DataFrame({"avant": SCORES_BEFORE, "après": SCORES_AFTER})
-comparison["gain"] = (comparison["après"] - comparison["avant"]).round(2)
+comparison = pd.DataFrame({"before": SCORES_BEFORE, "after": SCORES_AFTER})
+comparison["gain"] = (comparison["after"] - comparison["before"]).round(2)
 rules_cmp = (RULES_BEFORE[["rule", "table", "dimension", "severity", "violations"]]
-             .merge(RULES_AFTER[["rule", "violations"]], on="rule", suffixes=("_avant", "_après"))
-             .query("violations_avant > 0 or violations_après > 0"))
+             .merge(RULES_AFTER[["rule", "violations"]], on="rule", suffixes=("_before", "_after"))
+             .query("violations_before > 0 or violations_after > 0"))
 
 blocking_left = int(RULES_AFTER.query("severity == 'blocking'")["violations"].sum())
 STATUS = "blocked" if blocking_left else ("ready_with_warnings" if RULES_AFTER["violations"].sum() else "ready")
@@ -28,6 +28,6 @@ for name, frame in {"type_report": TYPE_REPORT, "type_failures": TYPE_FAILURES, 
 AUDIT.log("quality_agent", "quality_completed",
           {"status": STATUS, "blocking_left": blocking_left, "scores_before": SCORES_BEFORE.to_dict(),
            "scores_after": SCORES_AFTER.to_dict(), "cells_changed": len(CHANGES), "rows_changed": len(ROW_CHANGES)})
-print(f"Statut qualité : {STATUS} · violations bloquantes restantes : {blocking_left}")
+print(f"Quality status: {STATUS} · remaining blocking violations: {blocking_left}")
 display(comparison)
-rules_cmp.sort_values("violations_avant", ascending=False)
+rules_cmp.sort_values("violations_before", ascending=False)

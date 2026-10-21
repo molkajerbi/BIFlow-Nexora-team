@@ -98,7 +98,7 @@ export function Diagnostic({ jobId }) {
   const order = { blocking: 0, warning: 1, info: 2 };
   const view = report.filter((f) => (!table || f.table === table) && (!level || f.severity === level))
     .sort((a, b) => (order[a.severity] ?? 3) - (order[b.severity] ?? 3));
-  const healthCols = health && health.length ? Object.keys(health[0]).filter((k) => k !== "colonnes_avec_manquants") : [];
+  const healthCols = health && health.length ? Object.keys(health[0]).filter((k) => k !== "colonnes_avec_manquants" && k !== "columns_with_missing") : [];
   return (
     <>
       <Section title="The diagnosis of your data" lead="BIFlow screened every column: empty values, duplicates, abnormal values, broken links… Each point found is then explained by the AI in plain language. An explanation is kept only if all its numbers match the real measurements.">
@@ -129,7 +129,7 @@ export function Diagnostic({ jobId }) {
             {view.slice(0, 60).map((f) => {
               const [label, kind] = SEVERITY[f.severity] || [f.severity, "neutral"];
               const where = !f.colonne || f.colonne === "*" ? f.table : `${f.table} › ${f.colonne}`;
-              const text = f.interpretation && !String(f.interpretation).startsWith("Non interprété") ? f.interpretation
+              const text = f.interpretation && !/^(Non interprété|Not interpreted)/.test(String(f.interpretation)) ? f.interpretation
                 : "To review: this point could not be explained automatically.";
               return (
                 <div className={`card edge-${kind}`} key={f.id}>
@@ -285,7 +285,7 @@ export function Model({ jobId }) {
               const [title, meaning] = indicatorLabel(d.colonne, d.type, d.calcul);
               return (
                 <div className="card" key={`${d.table}.${d.colonne}`}>
-                  <div className="row"><h4>{title}</h4><Badge kind="info" dot={false}>{String(d.type).includes("délai") ? "delay in days" : "yes / no"}</Badge></div>
+                  <div className="row"><h4>{title}</h4><Badge kind="info" dot={false}>{/délai|duration|delay/.test(String(d.type)) ? "delay in days" : "yes / no"}</Badge></div>
                   <p>{meaning}</p>
                   <div className="meta">Table {d.table} · new column {d.colonne}</div>
                 </div>

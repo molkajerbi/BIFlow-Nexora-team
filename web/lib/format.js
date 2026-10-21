@@ -68,7 +68,7 @@ export function firstName(name) {
 /** Keeps an AI justification only if it is written for a human (no code, no dictionary). */
 export function humanText(text) {
   if (typeof text !== "string" || !text.trim()) return "";
-  if (/[{}[\]]|_[a-z]|->|fallback|superviseur/.test(text)) return "";
+  if (/[{}[\]]|_[a-z]|->|fallback|superviseur|supervisor/.test(text)) return "";
   return text.trim();
 }
 
@@ -94,6 +94,8 @@ export const SEM_TYPE = {
 export const DIMENSION = {
   "complétude": "Completeness", "validité": "Validity", format: "Formatting", "unicité": "Uniqueness",
   "intégrité": "Consistency across tables", "plausibilité": "Plausibility", structure: "Structure", "cohérence": "Consistency",
+  completeness: "Completeness", validity: "Validity", uniqueness: "Uniqueness", integrity: "Consistency across tables",
+  plausibility: "Plausibility", consistency: "Consistency",
 };
 export const SEVERITY = { blocking: ["Critical", "crit"], warning: ["To watch", "warn"], info: ["Information", "info"] };
 export const ACTION = {
@@ -102,6 +104,10 @@ export const ACTION = {
   agreger_avant_jointure: "Aggregate before joining the tables", completer_reference: "Complete the reference table",
   imputer: "Estimate the missing values", plafonner: "Cap extreme values to a limit",
   corriger_valeur: "Replace impossible values",
+  keep: "No action needed", flag: "Flag to users", human_review: "To be reviewed by a person", standardize: "Standardize the formatting",
+  deduplicate: "Remove duplicates", aggregate_before_join: "Aggregate before joining the tables",
+  complete_reference: "Complete the reference table", impute: "Estimate the missing values", cap: "Cap extreme values to a limit",
+  fix_value: "Replace impossible values",
 };
 export const CORRECTION = {
   strip_whitespace: ["Extra spaces removed", "Spaces at the start and end of values are removed."],
@@ -114,7 +120,7 @@ export const CORRECTION = {
 };
 export const DECIDED_BY = {
   agent: "Decided by the AI", fallback: "Decided automatically from the test", LLM: "Analyzed by the AI",
-  "politique (déblocage)": "Decided automatically from the test",
+  "politique (déblocage)": "Decided automatically from the test", "policy (unblocking)": "Decided automatically from the test",
 };
 export const QUALITY_STATUS = {
   ready: ["Data ready for analysis", "ok"],
@@ -122,28 +128,44 @@ export const QUALITY_STATUS = {
   blocked: ["Data blocked: a critical problem must be solved", "crit"],
 };
 export const HEALTH_COLS = {
+  rows: "Rows", columns: "Columns", "missing_cells_%": "Missing values (%)", invalid_values: "Malformed values",
+  unique_grain: "Unique identifier", exact_duplicates: "Duplicate rows", IF_anomalies: "Unusual rows", IQR_extremes: "Extreme values",
   table: "Table", lignes: "Rows", colonnes: "Columns", "cellules_manquantes_%": "Missing values (%)",
   valeurs_non_conformes: "Malformed values", grain_unique: "Unique identifier", doublons_exacts: "Duplicate rows",
   anomalies_IF: "Unusual rows", "extrêmes_IQR": "Extreme values",
 };
 export const SECTOR = {
   commerce: "Retail and e-commerce", "télécom": "Telecommunications", banque: "Banking and finance", transport: "Transport and mobility",
+  telecom: "Telecommunications", banking: "Banking and finance",
 };
-export const KPI_STATUS = { "validé": ["Validated", "ok"], "validé (humain)": ["Validated", "ok"], "à confirmer": ["To confirm", "warn"] };
-export const RELIABILITY = { fiable: "reliable data", "à surveiller": "a few rows flagged", fragile: "many rows flagged" };
-export const INSIGHT_TYPE = { alerte: ["Alert", "crit"], "opportunité": ["Opportunity", "ok"], constat: ["Finding", "info"] };
+export const KPI_STATUS = {
+  "validé": ["Validated", "ok"], "validé (humain)": ["Validated", "ok"], "à confirmer": ["To confirm", "warn"],
+  validated: ["Validated", "ok"], "validated (human)": ["Validated", "ok"], "to confirm": ["To confirm", "warn"],
+};
+export const RELIABILITY = {
+  fiable: "reliable data", "à surveiller": "a few rows flagged", fragile: "many rows flagged",
+  reliable: "reliable data", "to monitor": "a few rows flagged",
+};
+export const INSIGHT_TYPE = {
+  alerte: ["Alert", "crit"], "opportunité": ["Opportunity", "ok"], constat: ["Finding", "info"],
+  alert: ["Alert", "crit"], opportunity: ["Opportunity", "ok"], finding: ["Finding", "info"],
+};
 export const FACT_TYPE = {
   tendance: "Trend", "variation récente": "Recent change", "sur un an": "Year over year", anomalie: "Unusual month",
   rupture: "Level shift", segment: "Gap between segments", contribution: "Driver of a change", valeur: "Overall value",
+  trend: "Trend", "recent change": "Recent change", "year over year": "Year over year", anomaly: "Unusual month",
+  "level shift": "Level shift", value: "Overall value",
 };
-export const VALENCE = { positive: "Positive", "négative": "Negative", neutre: "Neutral", positif: "Positive", "négatif": "Negative" };
+export const VALENCE = {
+  favorable: "Favorable", "défavorable": "Unfavorable", neutre: "Neutral", unfavorable: "Unfavorable", neutral: "Neutral",
+};
 
 export function bindingLabel(source) {
   const s = String(source || "");
-  if (s === "évidente") return "obvious columns, chosen automatically";
+  if (s === "évidente" || s === "obvious") return "obvious columns, chosen automatically";
   if (s === "LLM") return "columns chosen by the AI, then verified";
-  if (s === "proposée par l'agent") return "KPI proposed by the AI, computed and tested";
-  return s.startsWith("repli") ? "chosen by the fallback rule" : s;
+  if (s === "proposée par l'agent" || s === "proposed by the agent") return "KPI proposed by the AI, computed and tested";
+  return s.startsWith("repli") || s.startsWith("fallback") ? "chosen by the fallback rule" : s;
 }
 
 export function sectorText(bi) {
@@ -181,8 +203,8 @@ export function indicatorLabel(column, kind, calc) {
 
 export function cleanDescription(text) {
   if (typeof text !== "string") return "";
-  const t = text.replace(/\s*\([^()]*rôle\s*:[^()]*\)\s*$/, "").trim();
-  return /^\d+ lignes, \d+ colonnes$/.test(t) ? "" : t;
+  const t = text.replace(/\s*\([^()]*(rôle|role)\s*:[^()]*\)\s*$/, "").trim();
+  return /^\d+ (lignes|rows), \d+ (colonnes|columns)$/.test(t) ? "" : t;
 }
 
 export function friendlyRule(description) {

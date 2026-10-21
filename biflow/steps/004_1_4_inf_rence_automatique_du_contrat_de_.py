@@ -11,7 +11,7 @@ KEY_TYPES = {"id", "zip", "category", "integer"}
 
 
 def snake(name: str) -> str:
-    """'Order Date' / 'OrderDate' -> 'order_date' (noms sûrs)."""
+    """'Order Date' / 'OrderDate' -> 'order_date' (safe names)."""
     s = re.sub(r"([a-z0-9])([A-Z])", r"\1_\2", str(name))
     s = re.sub(r"[^0-9a-zA-Z]+", "_", s).strip("_").lower()
     return s if s and not s[0].isdigit() else f"t_{s}"
@@ -42,11 +42,11 @@ def read_table(path: Path, spec: dict) -> pd.DataFrame:
             return _as_text(pd.read_json(path, dtype=False))
         except ValueError:
             return _as_text(pd.read_json(path, lines=True, dtype=False))
-    raise ValueError(f"format non pris en charge : {fmt}")
+    raise ValueError(f"unsupported format: {fmt}")
 
 
 def sniff(path: Path) -> list[dict]:
-    """Détecte le format et ses paramètres. Un classeur Excel donne une table par feuille."""
+    """Detects the format and its parameters. An Excel workbook gives one table per sheet."""
     ext = path.suffix.lower()
     if ext in {".xlsx", ".xls"}:
         return [{"format": "excel", "sheet": s} for s in pd.ExcelFile(path).sheet_names]
@@ -62,11 +62,11 @@ def sniff(path: Path) -> list[dict]:
             return [{"format": "csv", "sep": max([",", ";", "\t", "|"], key=header.count), "encoding": encoding}]
         except UnicodeDecodeError:
             continue
-    raise ValueError(f"{path.name} : encodage non reconnu")
+    raise ValueError(f"{path.name}: unrecognized encoding")
 
 
 def table_names(keys: list[str]) -> list[str]:
-    """Nom de table = nom de fichier nettoyé (préfixe commun type 'olist_' et suffixe '_dataset' retirés)."""
+    """Table name = cleaned file name (common prefix such as 'olist_' and suffix '_dataset' removed)."""
     stems = [re.sub(r"_(dataset|data|table)$", "", snake(k)) for k in keys]
     first = pd.Series([s.split("_")[0] for s in stems]).value_counts()
     if len(stems) > 1 and first.iloc[0] >= max(2, len(stems) / 2):
@@ -84,20 +84,20 @@ US_NUMBER_PATTERN = r"[+-]?\d{1,3}(?:,\d{3})+(?:\.\d+)?"                    # 1,
 
 
 def clean_number_text(s: pd.Series, fmt: dict | None) -> pd.Series:
-    """Texte -> texte numérique standard ('1 234,50 €' -> '1234.50') selon le format détecté pour la colonne."""
+    """Text -> standard numeric text ('1 234,50 €' -> '1234.50') according to the format detected for the column."""
     if not fmt:
         return s
     if fmt.get("unit"):
         s = s.str.replace(UNIT_RE, "", regex=True).str.strip()
     if fmt.get("decimal") == ",":
-        s = s.str.replace(r"[ .\u00a0\u202f]", "", regex=True).str.replace(",", ".", regex=False)
+        s = s.str.replace(r"[ .  ]", "", regex=True).str.replace(",", ".", regex=False)
     elif fmt.get("thousands") == ",":
         s = s.str.replace(",", "", regex=False)
     return s
 
 
 def number_format(sample: pd.Series) -> tuple[float, dict | None]:
-    """Part des valeurs qui sont des nombres, et leur écriture : 12.5 · 1,234.5 · 12,5 · 1 234,5 · 12 € · 15 %."""
+    """Share of values that are numbers, and their notation: 12.5 · 1,234.5 · 12,5 · 1 234,5 · 12 € · 15 %."""
     units = sample.str.extract("(" + UNIT_RE.strip("\\s*") + ")", expand=False).dropna().str.strip()
     unit = units.mode()[0] if len(units) >= 0.5 * len(sample) else ""
     base = sample.str.replace(UNIT_RE, "", regex=True).str.strip() if unit else sample
@@ -120,8 +120,8 @@ def is_day_month_swap(a: str, b: str) -> bool:
 
 
 def infer_type(name: str, s: pd.Series) -> tuple[str, Any]:
-    """Type sémantique d'une colonne, déduit de son nom ET de ses valeurs.
-    Renvoie aussi le format : format de date (ou {'ambiguous': [...]}) ou écriture des nombres."""
+    """Semantic type of a column, inferred from its name AND its values.
+    Also returns the format: date format (or {'ambiguous': [...]}) or number notation."""
     values = s.dropna()
     if values.empty:
         return "text", None
@@ -176,7 +176,7 @@ def infer_grain(table: str, df: pd.DataFrame, types: dict) -> list[str] | None:
 
 # ---------- Relations : dépendances d'inclusion + correspondance des noms ----------
 def key_name(table: str, col: str) -> str:
-    """Nom de clé sans le préfixe de la table : geolocation_zip_code_prefix -> zip_code_prefix."""
+    """Key name without the table prefix: geolocation_zip_code_prefix -> zip_code_prefix."""
     s = snake(col)
     for p in (singular(table) + "_", table + "_"):
         if s.startswith(p) and len(s) > len(p):
@@ -197,9 +197,9 @@ def family(sem: str) -> str:
 
 
 def infer_relationships(values: dict, types: dict, grains: dict) -> list[dict]:
-    """Une colonne pointe vers une clé d'une autre table si ses valeurs y sont (en majorité) incluses.
-    Clé unique (grain) : relation classique. Table sans grain (ex. plusieurs points GPS par code postal) :
-    relation 'à agréger' (la dimension sera agrégée sur cette clé)."""
+    """A column points to a key of another table if its values are (mostly) included in it.
+    Unique key (grain): classic relationship. Table without a grain (e.g. several GPS points per zip code):
+    'to aggregate' relationship (the dimension will be aggregated on this key)."""
     targets = []
     for t, g in grains.items():
         if g and len(g) == 1:
@@ -238,14 +238,14 @@ def infer_relationships(values: dict, types: dict, grains: dict) -> list[dict]:
 
 
 def infer_roles(types: dict, grains: dict, rels: list[dict]) -> dict:
-    """Fait = table d'événements (dates) ou de mesures non référencée ; dimension = table référencée (entité)."""
+    """Fact = table of events (dates) or of unreferenced measures; dimension = referenced table (entity)."""
     parents, children = {r["parent"] for r in rels}, {r["child"] for r in rels}
     roles = {}
     for t, cols in types.items():
         fks = {r["fk"] for r in rels if r["child"] == t}
         has_date = "datetime" in cols.values()
         measures = [c for c, s in cols.items() if s in {"numeric", "integer"} and c not in (grains[t] or []) and c not in fks]
-        roles[t] = "fait" if (has_date and (t in children or t not in parents)) or (t not in parents and measures) else "dimension"
+        roles[t] = "fact" if (has_date and (t in children or t not in parents)) or (t not in parents and measures) else "dimension"
     return roles
 
 
@@ -255,13 +255,13 @@ def ram_used_gb() -> float:
 
 
 def infer_contract(data_dir: Path) -> dict:
-    """Lit les fichiers UN PAR UN (mémoire libérée après chaque table) et propose le contrat complet."""
+    """Reads the files ONE AT A TIME (memory freed after each table) and proposes the full contract."""
     entries = []                                               # (clé de nom, chemin, paramètres de lecture)
     for path in list_data_files(data_dir):
         rel, sheets = str(path.relative_to(data_dir).with_suffix("")), sniff(path)
         for spec in sheets:
             entries.append((rel + (f"_{spec['sheet']}" if len(sheets) > 1 else ""), path, spec))
-    assert entries, f"aucun fichier de données dans {data_dir}"
+    assert entries, f"no data file in {data_dir}"
     specs, types, formats, number_formats, grains, stats, values = {}, {}, {}, {}, {}, {}, {}
     ambiguous = {}
     for name, (key, path, spec) in zip(table_names([e[0] for e in entries]), entries):
@@ -284,8 +284,8 @@ def infer_contract(data_dir: Path) -> dict:
                 values[(name, c)] = set(df[c].dropna().unique())
         del df
         gc.collect()
-        print(f"  {specs[name]['file'][:45]:45s} {stats[name]['rows']:>10,} lignes · grain {grains[name]} · "
-              f"{time.perf_counter() - t0:.1f} s · RAM {ram_used_gb():.1f} Go", flush=True)
+        print(f"  {specs[name]['file'][:45]:45s} {stats[name]['rows']:>10,} rows · grain {grains[name]} · "
+              f"{time.perf_counter() - t0:.1f} s · RAM {ram_used_gb():.1f} GB", flush=True)
     # Dates ambiguës (01/02/2023) : on suit l'ordre jour/mois des autres dates du dataset (sinon jour/mois)
     day_first = sum(f.find("%d") < f.find("%m") for f in formats.values() if "%d" in f and f.find("%Y") > 0)
     month_first = sum(f.find("%m") < f.find("%d") for f in formats.values() if "%d" in f and f.find("%Y") > 0)
@@ -297,20 +297,20 @@ def infer_contract(data_dir: Path) -> dict:
     roles = infer_roles(types, grains, rels)
     aggregated = {r["parent"] for r in rels if r["aggregate"]}
     # Points à vérifier : ce que l'inférence n'a pas pu établir avec certitude
-    checks = [f"{t} : aucun grain trouvé" for t in specs if not grains[t] and t not in aggregated and roles[t] == "dimension"]
-    checks += [f"{r['child']}.{r['fk']} -> {r['parent']} : seulement {r['inclusion_pct']} % des valeurs retrouvées"
+    checks = [f"{t}: no grain found" for t in specs if not grains[t] and t not in aggregated and roles[t] == "dimension"]
+    checks += [f"{r['child']}.{r['fk']} -> {r['parent']}: only {r['inclusion_pct']}% of the values found"
                for r in rels if r["inclusion_pct"] < 95]
-    checks += [f"{k} : date ambiguë (jour/mois), lue comme {formats[k]}" for k in ambiguous]
-    checks += [f"{r['child']}.{r['fk']} -> {r['parent']}.{r['pk']} : relation trouvée par les valeurs (noms différents)"
+    checks += [f"{k}: ambiguous date (day/month), read as {formats[k]}" for k in ambiguous]
+    checks += [f"{r['child']}.{r['fk']} -> {r['parent']}.{r['pk']}: relationship found by values (different names)"
                for r in rels if not r["same_name"]]
-    checks += [f"{t} : table isolée (aucune relation)" for t in specs
+    checks += [f"{t}: isolated table (no relationship)" for t in specs
                if len(specs) > 1 and t not in {r['child'] for r in rels} | {r['parent'] for r in rels}]
     confidence = round(100 * (1 - len(checks) / max(len(specs) + len(rels), 1)), 1)
-    contract = {t: {**specs[t], "description": f"{stats[t]['rows']} lignes, {len(types[t])} colonnes (rôle : {roles[t]})",
+    contract = {t: {**specs[t], "description": f"{stats[t]['rows']} rows, {len(types[t])} columns (role: {roles[t]})",
                     "grain": grains[t], "columns": types[t]} for t in specs}
     return {"contract": contract, "relationships": [{k: r[k] for k in ("child", "fk", "parent", "pk", "aggregate")} for r in rels],
             "relationship_details": rels, "formats": formats, "number_formats": number_formats, "roles": roles,
             "stats": stats, "checks": checks, "confidence": max(confidence, 0.0)}
 
 
-print("Fonctions d'inférence du contrat prêtes")
+print("Contract inference functions ready")

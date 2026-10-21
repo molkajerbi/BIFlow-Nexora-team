@@ -1,5 +1,5 @@
-assert STATUS != "blocked", "Qualité bloquante : l'ETL est interdit tant que l'étape 4 n'est pas débloquée."
-assert all("_dq_flags" in df for df in SILVER.values()), "Exécutez d'abord l'étape 4 complète (4.1 → 4.9)."
+assert STATUS != "blocked", "Blocking quality: the ETL is forbidden until step 4 is unblocked."
+assert all("_dq_flags" in df for df in SILVER.values()), "Run the complete step 4 first (4.1 → 4.9)."
 
 try:
     import duckdb
@@ -14,7 +14,7 @@ except ImportError:
 
 
 class Warehouse:
-    """Petit entrepôt SQL : charge des DataFrames, exécute des templates SQL, relit les résultats."""
+    """Small SQL warehouse: loads DataFrames, runs SQL templates, reads the results back."""
 
     def __init__(self, path: Path):
         self.path = path
@@ -22,7 +22,7 @@ class Warehouse:
 
     @staticmethod
     def _portable(df: pd.DataFrame) -> pd.DataFrame:
-        """Types neutres : les valeurs manquantes deviennent NULL (jamais NaN, qui fausserait les SUM)."""
+        """Neutral types: missing values become NULL (never NaN, which would distort SUMs)."""
         out = pd.DataFrame(index=df.index)
         for c in df.columns:
             s = df[c]
@@ -59,4 +59,4 @@ etl_dir = RUN_DIR / "warehouse"
 etl_dir.mkdir(exist_ok=True)
 WH = Warehouse(etl_dir / f"biflow_star.{'duckdb' if SQL_ENGINE == 'duckdb' else 'sqlite'}")
 AUDIT.log("etl_agent", "warehouse_opened", {"engine": SQL_ENGINE, "path": WH.path, "quality_status": STATUS})
-print(f"Moteur SQL : {SQL_ENGINE} · entrepôt : {WH.path.name} · statut qualité en entrée : {STATUS}")
+print(f"SQL engine: {SQL_ENGINE} · warehouse: {WH.path.name} · input quality status: {STATUS}")

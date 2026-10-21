@@ -8,19 +8,19 @@ def kpi_relevance() -> pd.Series:
 
 
 RELEVANCE = kpi_relevance()
-selected = [c for c in KPI_KB if (set(c["sectors"]) & {"générique", *BI_SECTORS})]
+selected = [c for c in KPI_KB if (set(c["sectors"]) & {"generic", *BI_SECTORS})]
 KPI_REFERENCES = sorted(
     [{"id": c["id"], "name": c["name"], "sector": c["sectors"][0], "relevance": float(RELEVANCE[c["id"]]),
       **{k: KPI_ASSESSMENT[c["id"]][k] for k in ("feasible", "fact", "missing", "fit", "confidence", "candidates")}} for c in selected],
-    key=lambda r: (-r["feasible"], r["sector"] == "générique", -r["relevance"]))
+    key=lambda r: (-r["feasible"], r["sector"] == "generic", -r["relevance"]))
 references_df = pd.DataFrame([{**{k: r[k] for k in ("id", "name", "sector", "feasible", "confidence", "relevance", "fact")},
-                               "liaison suggérée": "; ".join(f"{s}→{v[0]['column']}" for s, v in r["candidates"].items() if v) or "—",
-                               "manque": ", ".join(r["missing"]) or "—"} for r in KPI_REFERENCES])
+                               "suggested binding": "; ".join(f"{s}→{v[0]['column']}" for s, v in r["candidates"].items() if v) or "—",
+                               "missing": ", ".join(r["missing"]) or "—"} for r in KPI_REFERENCES])
 (RUN_DIR / "bi").mkdir(exist_ok=True)
 (RUN_DIR / "bi" / "kpi_references.json").write_text(canonical_json(KPI_REFERENCES), encoding="utf-8")
 BI_INVENTORY.to_csv(RUN_DIR / "bi" / "semantic_inventory.csv", index=False)
 AUDIT.log("bi_knowledge", "kpi_references_selected",
           {"selected": len(KPI_REFERENCES), "feasible": int(references_df["feasible"].sum()), "mode": BI_MODE,
            "ids": [r["id"] for r in KPI_REFERENCES if r["feasible"]]})
-print(f"{len(KPI_REFERENCES)} fiches transmises à l'agent KPI · {int(references_df['feasible'].sum())} calculables · mode {BI_MODE}")
+print(f"{len(KPI_REFERENCES)} cards handed to the KPI agent · {int(references_df['feasible'].sum())} computable · {BI_MODE} mode")
 references_df

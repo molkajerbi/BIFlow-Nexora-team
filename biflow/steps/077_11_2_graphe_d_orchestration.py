@@ -13,8 +13,8 @@ BI_LOG_DIR.mkdir(exist_ok=True)
 
 
 def bi_graph_node(name: str):
-    """Enveloppe graph_node de la partie 1, annotée avec l'état de la partie 2. LangGraph lit l'annotation du paramètre
-    d'un nœud pour savoir quelles clés lui transmettre : avec l'annotation de la partie 1, « start_from » serait filtré."""
+    """Part 1 graph_node wrapper, annotated with the part 2 state. LangGraph reads the annotation of a node's
+    parameter to know which keys to pass to it: with the part 1 annotation, "start_from" would be filtered out."""
     def decorator(fn):
         wrapper = graph_node(name)(fn)
         wrapper.__annotations__ = {"state": BIInsightState, "return": dict}
@@ -31,20 +31,20 @@ def llm_calls_so_far() -> int:
 
 
 STAGE_SUMMARIES = {
-    "bridge_agent": lambda: {"domaine": BI_INPUT["domain"], "secteurs": BI_SECTORS or ["générique"],
-                             "kpi_de_référence": len(KPI_REFERENCES)},
-    "kpi_agent": lambda: {"kpi_au_catalogue": len(KPI_CATALOG), "validés": int((KPI_CATALOG["status"] == "validé").sum()),
-                          "catalogue_sha256": CATALOG_SHA256[:12]},
-    "analyst_agent": lambda: {"séries": len(SERIES), "faits": len(FACTS), "insights": len(INSIGHTS),
-                              "insights_LLM": sum(i["source"] == "LLM" for i in INSIGHTS), "analyse_sha256": ANALYSIS_SHA256[:12]},
-    "dashboard_agent": lambda: {"mise_en_page": layout_source, "tuiles": len(LAYOUT["tuiles"]) + 1,
-                                "graphiques": len(LAYOUT["graphiques"]), "découpages": len(LAYOUT["decoupages"]),
-                                "fichier": DASHBOARD_PATH.name},
+    "bridge_agent": lambda: {"domain": BI_INPUT["domain"], "sectors": BI_SECTORS or ["generic"],
+                             "reference_kpis": len(KPI_REFERENCES)},
+    "kpi_agent": lambda: {"kpis_in_catalog": len(KPI_CATALOG), "validated": int((KPI_CATALOG["status"] == "validated").sum()),
+                          "catalog_sha256": CATALOG_SHA256[:12]},
+    "analyst_agent": lambda: {"series": len(SERIES), "facts": len(FACTS), "insights": len(INSIGHTS),
+                              "LLM_insights": sum(i["source"] == "LLM" for i in INSIGHTS), "analysis_sha256": ANALYSIS_SHA256[:12]},
+    "dashboard_agent": lambda: {"layout": layout_source, "tiles": len(LAYOUT["tiles"]) + 1,
+                                "charts": len(LAYOUT["charts"]), "breakdowns": len(LAYOUT["breakdowns"]),
+                                "file": DASHBOARD_PATH.name},
 }
 
 
 def run_stage(stage: dict) -> dict:
-    """Rejoue les cellules d'une étape ; renvoie la mise à jour de l'état (succès, ou échec avec la raison)."""
+    """Replays the cells of a step; returns the state update (success, or failure with the reason)."""
     sources = stage_sources(stage)
     g = globals()
     g[stage["checkpoint"]] = False                        # une étape n'est validée que si son point de contrôle est relu
@@ -54,7 +54,7 @@ def run_stage(stage: dict) -> dict:
     try:
         with contextlib.redirect_stdout(buffer), contextlib.redirect_stderr(buffer):
             for i, src in enumerate(sources, 1):
-                print(f"\n######## cellule {stage['step']}.{i}")
+                print(f"\n######## cell {stage['step']}.{i}")
                 exec(compile(src, f"<{stage['node']} {stage['step']}.{i}>", "exec"), g)
     finally:
         if had_display:
@@ -65,7 +65,7 @@ def run_stage(stage: dict) -> dict:
     metrics = {"llm_calls": llm_calls_so_far() - calls0, "journal": log_path.name}
     if not g.get(stage["checkpoint"]):
         failed = [k for k, v in g.get(stage["checks"], {}).items() if not v]
-        return {"status": "failed", "error": f"point de contrôle de l'étape {stage['step']} en échec : {', '.join(failed) or '?'}",
+        return {"status": "failed", "error": f"checkpoint of step {stage['step']} failed: {', '.join(failed) or '?'}",
                 "summary": metrics}
     metrics.update(STAGE_SUMMARIES[stage["node"]]())
     return {"status": "running", "stages": metrics, "summary": metrics}
@@ -87,20 +87,20 @@ def node_plan(state: BIInsightState) -> dict:
     k = STAGE_NAMES.index(start)
     for s in STAGES[:k]:                                  # reprise : les étapes amont doivent être validées dans la session
         if not globals().get(s["checkpoint"]):
-            return {"status": "blocked", "error": f"reprise impossible à « {start} » : l'étape {s['step']} n'est pas validée "
-                                                  f"dans cette session (relancez depuis {s['node']})"}
+            return {"status": "blocked", "error": f"cannot resume at \"{start}\": step {s['step']} is not validated "
+                                                  f"in this session (run again from {s['node']})"}
     for s in STAGES[k:]:
         stage_sources(s)                                  # échoue tôt si une cellule n'a jamais été exécutée
-    reused = {s["node"]: {"repris": "résultat déjà validé dans la session"} for s in STAGES[:k]}
+    reused = {s["node"]: {"reused": "result already validated in the session"} for s in STAGES[:k]}
     return {"status": "running", "stages": reused,
-            "summary": {"départ": start, "étapes_reprises": list(reused), "étapes_à_exécuter": STAGE_NAMES[k:]}}
+            "summary": {"start": start, "reused_steps": list(reused), "steps_to_run": STAGE_NAMES[k:]}}
 
 
 def bi_run_report(state: BIInsightState, status: str) -> dict:
     g = globals()
     outputs = {name: str(path) for name, path in [
-        ("dashboard", g.get("DASHBOARD_PATH")), ("catalogue", g.get("BI_DIR") and BI_DIR / "kpi_catalog.json"),
-        ("analyse", g.get("BI_DIR") and BI_DIR / "analysis.json"), ("insights", g.get("BI_DIR") and BI_DIR / "insights.json")]
+        ("dashboard", g.get("DASHBOARD_PATH")), ("catalog", g.get("BI_DIR") and BI_DIR / "kpi_catalog.json"),
+        ("analysis", g.get("BI_DIR") and BI_DIR / "analysis.json"), ("insights", g.get("BI_DIR") and BI_DIR / "insights.json")]
         if path and Path(path).exists()}
     report = {"run_id": RUN_ID, "status": status, "error": state.get("error"), "start_from": state.get("start_from"),
               "engine": GRAPH_ENGINE, "finished_at": utc_now(), "stages": state.get("stages", {}),
@@ -114,13 +114,13 @@ def bi_run_report(state: BIInsightState, status: str) -> dict:
 @bi_graph_node("finalize")
 def node_bi_finalize(state: BIInsightState) -> dict:
     outputs = bi_run_report({**state, "status": "success"}, "success")
-    return {"status": "success", "outputs": outputs, "summary": {"fichiers": list(outputs)}}
+    return {"status": "success", "outputs": outputs, "summary": {"files": list(outputs)}}
 
 
 @bi_graph_node("report")
 def node_bi_report(state: BIInsightState) -> dict:
     outputs = bi_run_report(state, state.get("status", "failed"))
-    return {"outputs": outputs, "summary": {"arrêt": state.get("status"), "raison": state.get("error")}}
+    return {"outputs": outputs, "summary": {"stop": state.get("status"), "reason": state.get("error")}}
 
 
 def plan_route(state: BIInsightState) -> str:
@@ -143,7 +143,7 @@ BI_INSIGHT_GRAPH = bi_builder.compile()
 
 BI_MERMAID = BI_INSIGHT_GRAPH.get_graph().draw_mermaid()
 (RUN_DIR / "bi_insight_graph.mmd").write_text(BI_MERMAID, encoding="utf-8")
-print(f"Graphe de la partie 2 prêt (moteur : {GRAPH_ENGINE}) · {len(STAGES)} agents · enregistré dans bi_insight_graph.mmd")
+print(f"Part 2 graph ready (engine: {GRAPH_ENGINE}) · {len(STAGES)} agents · saved to bi_insight_graph.mmd")
 try:
     raise ImportError("aperçu du graphe désactivé en déploiement")
     display(Image(BI_INSIGHT_GRAPH.get_graph().draw_mermaid_png()))

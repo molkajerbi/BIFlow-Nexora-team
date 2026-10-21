@@ -4,8 +4,8 @@ MAX_TILES, MAX_CHARTS, MAX_SEGMENTS = 7, 6, 4
 
 
 def reliable_series(kid: str) -> pd.Series | None:
-    """Série mensuelle d'un KPI restreinte aux mois fiables (9.1), même si 9.1 l'a jugée redondante pour l'analyse.
-    Un KPI d'évolution (« growth ») n'a pas de courbe propre : sa série en 9.1 est celle du volume sous-jacent."""
+    """Monthly series of a KPI restricted to the reliable months (9.1), even if 9.1 found it redundant for the analysis.
+    A growth KPI ("growth") has no curve of its own: its series in 9.1 is that of the underlying volume."""
     if KB_BY_ID[kid]["formula"]["kind"] == "growth":
         return None
     if kid in SERIES:
@@ -28,11 +28,11 @@ def recent_change(kid: str, s: pd.Series | None) -> dict | None:
     text = fmt_pp(b - a) if unit == "percent" else fmt_rel((b - a) / abs(a))
     good = None if card["direction"] == "neutral" or a == b else (b > a) == (card["direction"] == "up")
     return {"text": text, "up": b > a, "good": good,
-            "label": f"{plabel(int(s.index[-WINDOW]))} – {plabel(int(s.index[-1]))} vs 3 mois précédents"}
+            "label": f"{plabel(int(s.index[-WINDOW]))} – {plabel(int(s.index[-1]))} vs previous 3 months"}
 
 
 def signal_score(kid: str) -> float:
-    return max([f["priority"] for f in FACTS.values() if f["kpi"] == kid and f["type"] != "valeur"] or [0.0])
+    return max([f["priority"] for f in FACTS.values() if f["kpi"] == kid and f["type"] != "value"] or [0.0])
 
 
 DASH_CANDIDATES = {}
@@ -51,8 +51,8 @@ for _, row in KPI_CATALOG.iterrows():
 SEGMENT_CANDIDATES = {f["id"]: f for f in FACTS.values()
                       if f["type"] == "segment" and f.get("segments") and not is_quality_kpi(f["kpi"])}
 CHART_CANDIDATES = [k for k, c in DASH_CANDIDATES.items() if c["series"]]
-print(f"{len(DASH_CANDIDATES)} KPI candidats · {len(CHART_CANDIDATES)} avec une série mensuelle · "
-      f"{len(SEGMENT_CANDIDATES)} découpages · {len(INSIGHTS)} insights")
-pd.DataFrame([{"id": c["id"], "KPI": c["name"], "valeur": c["display"], "évolution récente": (c["delta"] or {}).get("text", "—"),
-               "poids": c["weight"], "signal": c["signal"], "série": "oui" if c["series"] else "non"}
+print(f"{len(DASH_CANDIDATES)} candidate KPIs · {len(CHART_CANDIDATES)} with a monthly series · "
+      f"{len(SEGMENT_CANDIDATES)} breakdowns · {len(INSIGHTS)} insights")
+pd.DataFrame([{"id": c["id"], "KPI": c["name"], "value": c["display"], "recent change": (c["delta"] or {}).get("text", "—"),
+               "weight": c["weight"], "signal": c["signal"], "series": "yes" if c["series"] else "no"}
               for c in sorted(DASH_CANDIDATES.values(), key=lambda c: -(c["weight"] + c["signal"]))])

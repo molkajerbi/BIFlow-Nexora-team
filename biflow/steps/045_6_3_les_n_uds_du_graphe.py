@@ -1,8 +1,8 @@
 @graph_node("preflight")
 def node_preflight(state: DataPrepState) -> dict:
     checks = checkpoint_raw_integrity()
-    if not checks["contenu_inchangé"].all():
-        return {"status": "failed", "error": "les données brutes ont été modifiées"}
+    if not checks["content_unchanged"].all():
+        return {"status": "failed", "error": "the raw data has been modified"}
     return {"status": "running", "summary": {"tables": len(RAW.names), "rows": int(sum(len(RAW._tables[t]) for t in RAW.names))}}
 
 
@@ -39,26 +39,26 @@ def node_quality(state: DataPrepState) -> dict:
     AUTO_FLAGGED = RULES_BEFORE[(RULES_BEFORE["violations"] > 0)
                                 & ~RULES_BEFORE["rule"].isin({c["rule"] for c in CANDIDATES})][["rule", "table", "severity", "violations"]]
     Q_RUN = run_quality_agent()
-    proposed = [c for c in CANDIDATES if c["status"] == "proposé"]
-    CLEANING_PLAN = pd.DataFrame([{"id": f"C{i:02d}", "correction": c["correction"], "table": c["table"], "colonne": c["column"],
-                                   "candidat": c["id"], "règle": c["rule"], "findings": c["profiler_findings"],
-                                   "effet_simulé": c["simulation"]["rules_changed"], "justification": c["agent_reason"],
-                                   "décidé_par": c["decided_by"]} for i, c in enumerate(proposed, 1)],
-                                 columns=["id", "correction", "table", "colonne", "candidat", "règle", "findings",
-                                          "effet_simulé", "justification", "décidé_par"])
-    OTHER_TREATMENTS = pd.DataFrame([{"élément": c["id"], "table": c["table"], "traitement": "écarté par l'agent : reste signalé",
-                                      "justification": c["agent_reason"]} for c in CANDIDATES if c["status"] == "écarté"],
-                                    columns=["élément", "table", "traitement", "justification"])
+    proposed = [c for c in CANDIDATES if c["status"] == "proposed"]
+    CLEANING_PLAN = pd.DataFrame([{"id": f"C{i:02d}", "correction": c["correction"], "table": c["table"], "column": c["column"],
+                                   "candidate": c["id"], "rule": c["rule"], "findings": c["profiler_findings"],
+                                   "simulated_effect": c["simulation"]["rules_changed"], "justification": c["agent_reason"],
+                                   "decided_by": c["decided_by"]} for i, c in enumerate(proposed, 1)],
+                                 columns=["id", "correction", "table", "column", "candidate", "rule", "findings",
+                                          "simulated_effect", "justification", "decided_by"])
+    OTHER_TREATMENTS = pd.DataFrame([{"item": c["id"], "table": c["table"], "treatment": "dismissed by the agent: stays flagged",
+                                      "justification": c["agent_reason"]} for c in CANDIDATES if c["status"] == "dismissed"],
+                                    columns=["item", "table", "treatment", "justification"])
     PLAN_SHA256 = sha256_text(canonical_json({"plan": CLEANING_PLAN.to_dict(orient="records")}))
     metrics = {"rules_violated": int((RULES_BEFORE["violations"] > 0).sum()), "candidates": len(CANDIDATES),
                "decided_by_agent": Q_RUN["decided_by_agent"], "proposed": CLEANING_PLAN["id"].tolist(),
-               "dismissed": [c["id"] for c in CANDIDATES if c["status"] == "écarté"], "plan_sha256": PLAN_SHA256}
+               "dismissed": [c["id"] for c in CANDIDATES if c["status"] == "dismissed"], "plan_sha256": PLAN_SHA256}
     return {"status": "running", "quality": metrics, "summary": metrics}
 
 
 @graph_node("risk_review")
 def node_risk_review(state: DataPrepState) -> dict:
-    """Validation automatique selon le risque (aucune attente humaine)."""
+    """Automatic validation according to risk (no human waiting)."""
     global APPROVED, REVIEW
     REVIEW = review_plan()
     APPROVED = REVIEW["approved"]
@@ -69,7 +69,7 @@ def node_risk_review(state: DataPrepState) -> dict:
 def node_apply(state: DataPrepState) -> dict:
     global CHANGE_LOG, ROW_LOG, EXECUTION, CHANGES, ROW_CHANGES, ISSUES_AFTER, RULES_AFTER, SCORES_AFTER, STATUS
     CHANGE_LOG, ROW_LOG = [], []
-    EXECUTION = pd.DataFrame([apply_correction(p.id, p.correction, p.table, p.colonne)
+    EXECUTION = pd.DataFrame([apply_correction(p.id, p.correction, p.table, p.column)
                               for p in plan_in_order() if p.id in APPROVED],
                              columns=["id", "correction", "table", "column", "rows_before", "rows_after", "effect"])
     CHANGES = pd.concat(CHANGE_LOG, ignore_index=True) if CHANGE_LOG else pd.DataFrame()
@@ -89,7 +89,7 @@ def node_apply(state: DataPrepState) -> dict:
     update = {"quality": {**state["quality"], **metrics}, "summary": metrics}
     update["status"] = "blocked" if STATUS == "blocked" else "running"
     if STATUS == "blocked":
-        update["error"] = f"{blocking_left} violation(s) bloquante(s) : ETL interdit"
+        update["error"] = f"{blocking_left} blocking violation(s): ETL forbidden"
     return update
 
 
@@ -103,15 +103,15 @@ def node_etl(state: DataPrepState) -> dict:
     for name, df in STAGING.items():
         WH.load(name, df)
     ETL_TEMPLATES = design_star_schema()                     # modèle en étoile conçu à partir des données nettoyées
-    ETL_STATUS = {name: "à construire" for name in ETL_TEMPLATES}
+    ETL_STATUS = {name: "to build" for name in ETL_TEMPLATES}
     ETL_RESULTS = {}
     ETL_RUN = run_etl_agent()
-    ok = all(s == "testée" for s in ETL_STATUS.values())
-    metrics = {"tables_built": sum(s == "testée" for s in ETL_STATUS.values()), "tables_expected": len(ETL_TEMPLATES),
-               "built_by_agent": ETL_RUN["built_by_agent"], "failed": [n for n, s in ETL_STATUS.items() if s == "échec"]}
+    ok = all(s == "tested" for s in ETL_STATUS.values())
+    metrics = {"tables_built": sum(s == "tested" for s in ETL_STATUS.values()), "tables_expected": len(ETL_TEMPLATES),
+               "built_by_agent": ETL_RUN["built_by_agent"], "failed": [n for n, s in ETL_STATUS.items() if s == "failed"]}
     update = {"etl": metrics, "summary": metrics, "status": "running" if ok else "failed"}
     if not ok:
-        update["error"] = f"tests ETL en échec : {metrics['failed'] or 'construction incomplète'}"
+        update["error"] = f"ETL tests failed: {metrics['failed'] or 'incomplete build'}"
     return update
 
 
@@ -125,7 +125,7 @@ def node_finalize(state: DataPrepState) -> dict:
     RULES_AFTER.to_csv(out_dir / "quality_rules_after.csv", index=False)
     CHANGES.to_csv(out_dir / "quality_cell_changes.csv", index=False)
     ROW_CHANGES.to_csv(out_dir / "quality_row_changes.csv", index=False)
-    raw_ok = bool(checkpoint_raw_integrity()["contenu_inchangé"].all())
+    raw_ok = bool(checkpoint_raw_integrity()["content_unchanged"].all())
     chain_ok, chain_msg = AUDIT.verify()
     outputs = {"directory": str(out_dir), "warehouse": str(WH.path), "tables": {n: len(d) for n, d in star.items()},
                "raw_unchanged": raw_ok, "audit_chain": chain_msg}
@@ -134,15 +134,15 @@ def node_finalize(state: DataPrepState) -> dict:
         encoding="utf-8")
     ok = raw_ok and chain_ok
     return {"status": "success" if ok else "failed", "outputs": outputs, "summary": outputs,
-            "error": None if ok else "contrôle final en échec"}
+            "error": None if ok else "final check failed"}
 
 
 @graph_node("report")
 def node_report(state: DataPrepState) -> dict:
-    """Nœud d'arrêt : explique pourquoi le pipeline s'est interrompu."""
-    reasons = {"blocked": "qualité bloquante : l'ETL n'a pas été lancé",
-               "failed": "erreur pendant l'exécution"}
+    """Stop node: explains why the pipeline was interrupted."""
+    reasons = {"blocked": "blocking quality: the ETL was not started",
+               "failed": "error during execution"}
     return {"summary": {"status": state.get("status"), "reason": reasons.get(state.get("status")), "error": state.get("error")}}
 
 
-print("7 nœuds définis : preflight, profiler_agent, quality_agent, risk_review, apply_corrections, etl_agent, finalize (+ report)")
+print("7 nodes defined: preflight, profiler_agent, quality_agent, risk_review, apply_corrections, etl_agent, finalize (+ report)")

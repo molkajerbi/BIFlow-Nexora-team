@@ -4,16 +4,16 @@ SEMANTIC_TYPES = {"id", "category", "datetime", "numeric", "integer", "text", "z
 
 
 def validate_contract(contract: dict, relationships: list[dict]) -> None:
-    """Le contrat lui-même est contrôlé : une incohérence est détectée avant toute lecture des données."""
+    """The contract itself is checked: an inconsistency is detected before any data is read."""
     for name, spec in contract.items():
         unknown = set(spec["columns"].values()) - SEMANTIC_TYPES
-        assert not unknown, f"{name} : types sémantiques inconnus {unknown}"
+        assert not unknown, f"{name}: unknown semantic types {unknown}"
         if spec["grain"]:
             missing = set(spec["grain"]) - set(spec["columns"])
-            assert not missing, f"{name} : colonnes du grain absentes du contrat {missing}"
+            assert not missing, f"{name}: grain columns missing from the contract {missing}"
     for r in relationships:
-        assert r["fk"] in contract[r["child"]]["columns"], f"FK inconnue : {r}"
-        assert r["pk"] in contract[r["parent"]]["columns"], f"PK inconnue : {r}"
+        assert r["fk"] in contract[r["child"]]["columns"], f"Unknown FK: {r}"
+        assert r["pk"] in contract[r["parent"]]["columns"], f"Unknown PK: {r}"
 
 
 INFERRED = infer_contract(CONFIG.data_dir)
@@ -30,9 +30,9 @@ DATETIME_FORMATS = {k: f for k, f in INFERRED["formats"].items()
 NUMBER_FORMATS = INFERRED["number_formats"]                    # écriture des nombres : « 1 234,5 », « 12 € », « 15 % »…
 DATETIME_FORMAT = pd.Series(list(DATETIME_FORMATS.values()) or ["%Y-%m-%d %H:%M:%S"]).mode()[0]
 ID_PATTERN, ZIP_PATTERN = r"\S+", r"[0-9A-Za-z\- ]{2,12}"
-DOMAIN = "données tabulaires (domaine identifié à l'étape 3)"   # déduit ensuite par l'agent Domaine
+DOMAIN = "tabular data (domain identified in step 3)"   # déduit ensuite par l'agent Domaine
 _stats = INFERRED["stats"]
-FACT_TABLES = sorted([t for t, r in TABLE_ROLES.items() if r == "fait"], key=lambda t: -_stats[t]["rows"])
+FACT_TABLES = sorted([t for t, r in TABLE_ROLES.items() if r == "fact"], key=lambda t: -_stats[t]["rows"])
 CORE_TABLES = (FACT_TABLES or sorted(DATA_CONTRACT, key=lambda t: -_stats[t]["rows"]))[:3]
 DEMO = {"profile": CORE_TABLES[0], "grain": list(DATA_CONTRACT)[:3], "missing_column": None,
         "missing": max(_stats, key=lambda t: _stats[t]["missing_columns"]),
@@ -47,13 +47,13 @@ AUDIT.log("orchestrator", "contract_registered",
           {"tables": len(DATA_CONTRACT), "relationships": len(RELATIONSHIPS),
            "contract_sha256": sha256_text(canonical_json(DATA_CONTRACT))})
 
-print(f"{len(DATA_CONTRACT)} tables · {len(RELATIONSHIPS)} relations · confiance de l'inférence : {INFERRED['confidence']} %")
-print("Points à vérifier :", INFERRED["checks"] or "aucun")
+print(f"{len(DATA_CONTRACT)} tables · {len(RELATIONSHIPS)} relationships · inference confidence: {INFERRED['confidence']}%")
+print("Points to check:", INFERRED["checks"] or "none")
 if INFERRED["relationship_details"]:
     display(pd.DataFrame(INFERRED["relationship_details"]))
 pd.DataFrame([
-    {"table": t, "fichier": s["file"], "grain": " + ".join(s["grain"]) if s["grain"] else "— (aucun)",
-     "colonnes": len(s["columns"]), "rôle": TABLE_ROLES[t],
+    {"table": t, "file": s["file"], "grain": " + ".join(s["grain"]) if s["grain"] else "— (none)",
+     "columns": len(s["columns"]), "role": TABLE_ROLES[t],
      "types": ", ".join(f"{k}:{v}" for k, v in pd.Series(s["columns"]).value_counts().items())}
     for t, s in DATA_CONTRACT.items()
 ])
